@@ -1,0 +1,19 @@
+{
+  "name": "workshop-registration-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Production-ready WhatsApp automation bot for workshop registrations using a local Excel workbook.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.28.0"
+  }
+}
