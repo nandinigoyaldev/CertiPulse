@@ -5,3 +5,9 @@ credentials/
 .wwebjs_auth/
 .wwebjs_cache/
 *.log
+uploads/
+sample-upload.csv
+registrations/
+registrations/*
+registrations/**
+registrations/*.csv

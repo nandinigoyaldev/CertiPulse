@@ -1,13 +1,14 @@
 # Workshop Registration WhatsApp Bot
 
-Production-ready Node.js bot that reads workshop registrations from a local Excel workbook and sends personalized WhatsApp messages with `whatsapp-web.js`.
+Production-ready Node.js app that reads workshop registrations from uploaded Excel or CSV files and sends personalized WhatsApp messages with `whatsapp-web.js`.
 
 ## What it does
 
 - Connects to WhatsApp Web and shows a QR code in the terminal.
-- Reads rows from a local Excel workbook.
-- Sends a personalized WhatsApp message only when `Status` is empty or `NOT_SENT`.
+- Provides a browser dashboard for uploading spreadsheets.
+- Sends a personalized WhatsApp message to every valid row.
 - Updates the workbook with `SENT`, `FAILED`, or `SKIPPED_DUPLICATE` and stores a timestamp.
+- Shows which people did not receive an invite and why.
 - Validates Indian mobile numbers before sending.
 - Adds a random 10-20 second delay between messages.
 - Retries transient WhatsApp send failures.
@@ -19,6 +20,8 @@ Production-ready Node.js bot that reads workshop registrations from a local Exce
 project/
 ├── src/
 │   ├── index.js
+│   ├── jobRunner.js
+│   ├── server.js
 │   ├── sheets.js
 │   ├── whatsapp.js
 │   ├── utils.js
@@ -31,7 +34,7 @@ project/
 ## Prerequisites
 
 - Node.js 18 or newer.
-- A local Excel workbook with at least a phone-number column.
+- An uploaded Excel or CSV file with at least a phone-number column.
 
 Optional columns for personalization:
 
@@ -51,20 +54,17 @@ npm install
 
 ### 2) Put your workbook in place
 
-1. Create a folder named `data` in this project.
-2. Put your Excel file there as `registrations.xlsx`, or update `EXCEL_FILE_PATH` in `.env`.
-3. Make sure the first row contains headers for your data.
-4. If your phone column is named `Number` instead of `Phone`, the bot will still recognize it.
+1. For the web app, upload the workbook in the browser dashboard.
+2. Make sure the first row in each file contains headers for your data.
+3. If your phone column is named `Number` instead of `Phone`, the bot will still recognize it.
 
 ### 3) Configure environment variables
 
 Edit `.env` and set these values:
 
 ```env
-EXCEL_FILE_PATH=./data/registrations.xlsx
-SHEET_NAME=Sheet1
-GROUP_LINK=https://chat.whatsapp.com/your-group-link
-WHATSAPP_CLIENT_ID=workshop-registration-bot
+GROUP_LINK=https://chat.whatsapp.com/CKsaNXiMJrqASJjbFSUhqJ
+WHATSAPP_CLIENT_ID=workshop-registration-bot-qr
 WHATSAPP_HEADLESS=true
 MESSAGE_RETRY_COUNT=3
 MESSAGE_RETRY_DELAY_MS=5000
@@ -72,24 +72,33 @@ MIN_DELAY_MS=10000
 MAX_DELAY_MS=20000
 ```
 
+If you already have an authenticated WhatsApp session, keep `WHATSAPP_CLIENT_ID` the same so the web app reuses it.
+
+### Admin token (recommended)
+
+Set `ADMIN_TOKEN` in your `.env` to a strong secret to restrict access to the upload UI and API. The web UI and upload endpoints will return `401` when the token is set and not provided in the `Authorization: Bearer <token>` header.
+
 ### 5) Start the bot
 
 ```bash
 npm start
 ```
 
+Open `http://localhost:3000` in your browser, upload a spreadsheet, optionally paste a WhatsApp invite link, and the backend will process it automatically.
+
 The first run prints a QR code in the terminal. Scan it with WhatsApp on your phone. After that, the session is stored locally with `LocalAuth`, so you usually do not need to scan again unless the session is cleared.
 
 ## How the sheet is processed
 
-Only rows with `Status` equal to empty or `NOT_SENT` are processed.
-
 The decision to send is based on the phone number. `Name` and `Email` are only used to personalize the message if they exist.
+
+If the same phone number appears more than once in the same upload, only the first eligible row is sent and the rest are marked `SKIPPED_DUPLICATE`.
 
 - `SENT` is written after a successful send.
 - `FAILED` is written if validation fails or sending fails.
 - `SKIPPED_DUPLICATE` is written when the same phone number appears more than once in the same run.
 - `Timestamp` is updated when the row is processed.
+- The dashboard also lists every recipient that did not receive an invite.
 
 ## Phone number rules
 
@@ -116,22 +125,17 @@ npm start
 
 If you are running in a headless Linux server, keep `WHATSAPP_HEADLESS=true`. If you need to debug browser behavior locally, set it to `false`.
 
-## Deploy On Render
+## Docker
 
-This bot should run as a Render background worker, not a web service, because it needs a long-lived process and a persistent WhatsApp session.
+Build and run the production image:
 
-1. Push this repo to GitHub.
-2. Create a new Render service from the repository.
-3. Use the included `render.yaml` blueprint.
-4. Add `GROUP_LINK` as a secret environment variable in Render.
-5. Upload your Excel file into the mounted disk path or replace it with your own startup flow.
-
-Important: the file at `EXCEL_FILE_PATH` must exist on the Render disk before the bot starts. The current config will create an empty template automatically if it is missing, so you can deploy first and then upload your registrations file.
-
-If you want the workbook to persist across restarts, keep it on the mounted disk path instead of the container filesystem.
+```bash
+docker build -t workshop-bot:latest .
+docker run -e ADMIN_TOKEN=change_this -p 3000:3000 workshop-bot:latest
+```
 
 ## Troubleshooting
 
-- If the bot cannot read the workbook, confirm the `EXCEL_FILE_PATH` points to a real `.xlsx` file.
+- If the bot cannot read an uploaded workbook, confirm the file is a valid `.xlsx`, `.xlsm`, or `.csv`.
 - If the QR code does not appear, make sure the terminal supports ANSI output.
 - If Chrome/Chromium fails to launch on Linux, install the missing system packages for Puppeteer or switch to a machine with a supported desktop environment.

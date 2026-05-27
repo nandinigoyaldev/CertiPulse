@@ -1,0 +1,10 @@
+node_modules
+.git
+.wwebjs_auth
+uploads
+registrations
+*.log
+npm-debug.log*
+Dockerfile
+.env
+.env.local
