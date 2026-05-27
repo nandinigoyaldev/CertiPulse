@@ -2,6 +2,10 @@
 
 Production-ready Node.js app that reads workshop registrations from uploaded Excel or CSV files and sends personalized WhatsApp messages with `whatsapp-web.js`.
 
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
+
 ## What it does
 
 - Connects to WhatsApp Web and shows a QR code in the terminal.
