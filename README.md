@@ -116,6 +116,20 @@ npm start
 
 If you are running in a headless Linux server, keep `WHATSAPP_HEADLESS=true`. If you need to debug browser behavior locally, set it to `false`.
 
+## Deploy On Render
+
+This bot should run as a Render background worker, not a web service, because it needs a long-lived process and a persistent WhatsApp session.
+
+1. Push this repo to GitHub.
+2. Create a new Render service from the repository.
+3. Use the included `render.yaml` blueprint.
+4. Add `GROUP_LINK` as a secret environment variable in Render.
+5. Upload your Excel file into the mounted disk path or replace it with your own startup flow.
+
+Important: the file at `EXCEL_FILE_PATH` must exist on the Render disk before the bot starts. The current config will create an empty template automatically if it is missing, so you can deploy first and then upload your registrations file.
+
+If you want the workbook to persist across restarts, keep it on the mounted disk path instead of the container filesystem.
+
 ## Troubleshooting
 
 - If the bot cannot read the workbook, confirm the `EXCEL_FILE_PATH` points to a real `.xlsx` file.
