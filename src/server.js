@@ -14,11 +14,22 @@ const { readRowsFromWorkbookPath } = require('./sheets');
 const { getCertificate, revokeCertificate, getAllCertificates } = require('./verificationStore');
 const { createEmailTransporter, sendCertificateEmail } = require('./email');
 
-const PORT = Number.parseInt(process.env.PORT || '3000', 10);
-const UPLOAD_ROOT = path.resolve(process.cwd(), 'uploads');
-const UPLOAD_DIR = path.join(UPLOAD_ROOT, 'incoming');
+const os = require('os');
 
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const PORT = Number.parseInt(process.env.PORT || '3000', 10);
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_BUILDER);
+let UPLOAD_ROOT = isVercel ? path.join(os.tmpdir(), 'uploads') : path.resolve(process.cwd(), 'uploads');
+let UPLOAD_DIR = path.join(UPLOAD_ROOT, 'incoming');
+
+try {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+} catch (err) {
+  UPLOAD_ROOT = path.join(os.tmpdir(), 'uploads');
+  UPLOAD_DIR = path.join(UPLOAD_ROOT, 'incoming');
+  try {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  } catch (ignored) {}
+}
 
 const app = express();
 
@@ -460,12 +471,28 @@ app.use((error, req, res, next) => {
 });
 
 async function start() {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     log('INFO', `🚀 CertiPulse platform running at http://localhost:${PORT}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      log('ERROR', `Port ${PORT} is already in use by another process.`);
+      log('INFO', `To kill the process using port ${PORT}, run: npx kill-port ${PORT} or kill $(lsof -t -i:${PORT})`);
+      process.exit(1);
+    } else {
+      log('ERROR', 'Server encountered error:', err.message || err);
+    }
+  });
+
+  return server;
+}
+
+if (require.main === module && !isVercel) {
+  start().catch((error) => {
+    log('ERROR', 'Failed to start server', error.message || error);
+    process.exitCode = 1;
   });
 }
 
-start().catch((error) => {
-  log('ERROR', 'Failed to start server', error.message || error);
-  process.exitCode = 1;
-});
+module.exports = app;

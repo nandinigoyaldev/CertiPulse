@@ -1,10 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
-const VERIFY_FILE = path.join(DATA_DIR, 'certificates.json');
+const os = require('os');
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_BUILDER);
+let DATA_DIR = isVercel ? path.join(os.tmpdir(), 'data') : path.resolve(process.cwd(), 'data');
+let VERIFY_FILE = path.join(DATA_DIR, 'certificates.json');
+
+try {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+} catch (err) {
+  DATA_DIR = path.join(os.tmpdir(), 'data');
+  VERIFY_FILE = path.join(DATA_DIR, 'certificates.json');
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (ignored) {}
+}
 
 function loadStore() {
   if (!fs.existsSync(VERIFY_FILE)) {

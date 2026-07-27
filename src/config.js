@@ -22,6 +22,8 @@ module.exports = {
   fromName: process.env.FROM_NAME || 'CertiPulse Credentials',
   minDelayMs: Math.max(0, parseInteger(process.env.MIN_DELAY_MS, 1000)),
   maxDelayMs: Math.max(1000, parseInteger(process.env.MAX_DELAY_MS, 3000)),
-  appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
+  appBaseUrl:
+    process.env.APP_BASE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
   adminToken: process.env.ADMIN_TOKEN || '',
 };
