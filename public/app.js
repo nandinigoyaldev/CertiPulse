@@ -283,11 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const qrX = Number.parseInt(qrXInput?.value || '660', 10);
     const qrY = Number.parseInt(qrYInput?.value || '400', 10);
 
-    const showBadge = showBadgeCheck ? showBadgeCheck.checked : true;
-    const showSubtitle = showSubtitleCheck ? showSubtitleCheck.checked : true;
+    const showBadge = showBadgeCheck ? showBadgeCheck.checked : false;
+    const showSubtitle = showSubtitleCheck ? showSubtitleCheck.checked : false;
     const showName = showNameCheck ? showNameCheck.checked : true;
-    const showEvent = showEventCheck ? showEventCheck.checked : true;
-    const showFooter = showFooterCheck ? showFooterCheck.checked : true;
+    const showEvent = showEventCheck ? showEventCheck.checked : false;
+    const showFooter = showFooterCheck ? showFooterCheck.checked : false;
     const showQr = showQrCheck ? showQrCheck.checked : true;
 
     ctx.clearRect(0, 0, width, height);
@@ -476,18 +476,25 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const payload = {
         recipientName: 'Jane Doe',
-        eventTitle: eventTitleInput ? eventTitleInput.value : 'Workshop',
-        certificateSubtitle: subtitleInput ? subtitleInput.value : 'Certificate of Completion',
-        issuerName: issuerNameInput ? issuerNameInput.value : 'Nandini Goyal',
+        eventTitle: eventTitleInput ? eventTitleInput.value : '',
+        certificateSubtitle: subtitleInput ? subtitleInput.value : '',
+        issuerName: issuerNameInput ? issuerNameInput.value : '',
         themeColor: themeColorInput ? themeColorInput.value : '#e05638',
         customBgDataUrl,
         templatePreset: templatePresetSelect ? templatePresetSelect.value : 'modern',
-        nameY: nameYInput ? nameYInput.value : '200',
+        showName: showNameCheck ? showNameCheck.checked : true,
+        showQr: showQrCheck ? showQrCheck.checked : true,
+        showEvent: showEventCheck ? showEventCheck.checked : false,
+        showSubtitle: showSubtitleCheck ? showSubtitleCheck.checked : false,
+        showBadge: showBadgeCheck ? showBadgeCheck.checked : false,
+        showFooter: showFooterCheck ? showFooterCheck.checked : false,
+        nameY: nameYInput ? nameYInput.value : '230',
         nameSize: nameSizeInput ? nameSizeInput.value : '34',
-        eventY: eventYInput ? eventYInput.value : '280',
-        eventSize: eventSizeInput ? eventSizeInput.value : '22',
-        qrX: qrXInput ? qrXInput.value : '660',
-        qrY: qrYInput ? qrYInput.value : '400',
+        eventY: eventYInput ? eventYInput.value : '310',
+        eventSize: eventSizeInput ? eventSizeInput.value : '20',
+        qrX: qrXInput ? qrXInput.value : '680',
+        qrY: qrYInput ? qrYInput.value : '430',
+        customLayers: customLayers || [],
       };
 
       const res = await fetch('/api/preview-certificate', {

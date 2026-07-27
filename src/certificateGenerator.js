@@ -3,35 +3,46 @@ const QRCode = require('qrcode');
 const fs = require('fs');
 
 /**
- * Advanced PDF Certificate Generator with Custom Background Image & Dynamic QR Code support.
+ * Advanced PDF Certificate Generator.
+ * Strictly synchronized with HTML Canvas rendering engine.
  */
 async function generateCertificateBuffer(options = {}) {
   const {
     recipientName = 'Jane Doe',
-    eventTitle = 'Full-Stack Web Development Workshop',
-    certificateSubtitle = 'Certificate of Completion',
+    eventTitle = '',
+    certificateSubtitle = '',
     issueDate = new Date().toISOString().split('T')[0],
-    issuerName = 'CertiPulse Academy',
+    issuerName = '',
     certId = 'CERT-DEMO1234',
     verificationUrl = `http://localhost:3000/verify/${certId}`,
-    themeColor = '#0f766e',
-    textColor = '#0f172a',
+    themeColor = '#e05638',
+    textColor = '#1a1d20',
     badgeText = 'OFFICIAL CREDENTIAL',
-    customBackground = null, // Buffer or base64 or file path
-    templatePreset = 'modern', // 'modern', 'gold', 'tech', 'classic'
+    customBackground = null,
+    templatePreset = 'modern',
     layoutSettings = {},
   } = options;
 
   const {
-    nameY = 200,
+    showName = true,
+    nameY = 230,
     nameSize = 34,
-    eventY = 280,
-    eventSize = 22,
-    footerY = 410,
+
     showQr = true,
-    qrX = 660,
-    qrY = 400,
+    qrX = 680,
+    qrY = 430,
     qrSize = 80,
+
+    showEvent = false,
+    eventY = 310,
+    eventSize = 20,
+
+    showSubtitle = false,
+    showBadge = false,
+    showFooter = false,
+    footerY = 460,
+
+    customLayers = [],
   } = layoutSettings;
 
   // Generate QR Code Buffer
@@ -41,7 +52,7 @@ async function generateCertificateBuffer(options = {}) {
       margin: 1,
       width: Math.max(60, qrSize * 2),
       color: {
-        dark: '#0f172a',
+        dark: '#1a1d20',
         light: '#ffffff',
       },
     });
@@ -85,7 +96,7 @@ async function generateCertificateBuffer(options = {}) {
       }
     }
 
-    // Fallback: If no custom image, draw preset background frame
+    // Fallback: If no custom background, render preset background frame
     if (!hasCustomBg) {
       if (templatePreset === 'gold') {
         doc.rect(0, 0, width, height).fill('#fdfbf7');
@@ -96,100 +107,103 @@ async function generateCertificateBuffer(options = {}) {
         doc.lineWidth(3).strokeColor('#38bdf8').rect(20, 20, width - 40, height - 40).stroke();
       } else if (templatePreset === 'classic') {
         doc.rect(0, 0, width, height).fill('#ffffff');
-        doc.lineWidth(6).strokeColor('#1e293b').rect(24, 24, width - 48, height - 48).stroke();
+        doc.lineWidth(6).strokeColor('#1a1d20').rect(24, 24, width - 48, height - 48).stroke();
       } else {
-        // Modern Teal (default)
+        // Modern Terracotta (default)
         doc.rect(0, 0, width, height).fill('#faf8f5');
-        doc.lineWidth(3).strokeColor(themeColor).rect(20, 20, width - 40, height - 40).stroke();
-        doc.lineWidth(1).strokeColor('#cbd5e1').rect(26, 26, width - 52, height - 52).stroke();
-        doc.rect(32, 32, width - 64, height - 64).lineWidth(1.5).strokeColor(themeColor).stroke();
+        doc.lineWidth(4).strokeColor(themeColor).rect(20, 20, width - 40, height - 40).stroke();
+        doc.lineWidth(1.5).strokeColor('#1a1d20').rect(28, 28, width - 56, height - 56).stroke();
 
         // Decorative corner accents
-        doc.rect(20, 20, 40, 40).fill(themeColor);
-        doc.rect(width - 60, 20, 40, 40).fill(themeColor);
-        doc.rect(20, height - 60, 40, 40).fill(themeColor);
-        doc.rect(width - 60, height - 60, 40, 40).fill(themeColor);
+        doc.rect(20, 20, 36, 36).fill(themeColor);
+        doc.rect(width - 56, 20, 36, 36).fill(themeColor);
+        doc.rect(20, height - 56, 36, 36).fill(themeColor);
+        doc.rect(width - 56, height - 56, 36, 36).fill(themeColor);
       }
 
-      // Default Top Badge & Header Text
-      if (badgeText) {
+      // Header Badge (Only if enabled)
+      if (showBadge && badgeText) {
         doc.fillColor(themeColor).fontSize(14).font('Helvetica-Bold').text(badgeText.toUpperCase(), 0, 65, {
           align: 'center',
           characterSpacing: 2,
         });
       }
 
-      doc.fillColor(templatePreset === 'tech' ? '#f8fafc' : '#334155').fontSize(26).font('Helvetica').text(certificateSubtitle, 0, 95, {
-        align: 'center',
-      });
+      // Subtitle (Only if enabled)
+      if (showSubtitle && certificateSubtitle) {
+        doc.fillColor(templatePreset === 'tech' ? '#f8fafc' : '#1a1d20').fontSize(24).font('Helvetica-Bold').text(certificateSubtitle, 0, 95, {
+          align: 'center',
+        });
+        doc.moveTo(width / 2 - 100, 126).lineTo(width / 2 + 100, 126).lineWidth(2).strokeColor(themeColor).stroke();
+        doc.fillColor(templatePreset === 'tech' ? '#94a3b8' : '#5a6065').fontSize(11).font('Helvetica-Bold').text('THIS IS PROUDLY PRESENTED TO', 0, 150, {
+          align: 'center',
+        });
+      }
+    }
 
-      doc.moveTo(width / 2 - 120, 132).lineTo(width / 2 + 120, 132).lineWidth(2).strokeColor(themeColor).stroke();
-
-      doc.fillColor(templatePreset === 'tech' ? '#94a3b8' : '#64748b').fontSize(11).font('Helvetica-Bold').text('THIS IS PROUDLY PRESENTED TO', 0, 155, {
+    // 1. Recipient Name (Only if enabled)
+    if (showName && recipientName) {
+      const fontColor = templatePreset === 'tech' && !hasCustomBg ? '#ffffff' : textColor;
+      doc.fillColor(fontColor).fontSize(nameSize).font('Helvetica-Bold').text(recipientName, 40, nameY, {
         align: 'center',
-        characterSpacing: 1.5,
+        width: width - 80,
       });
     }
 
-    // Render Dynamic Recipient Name
-    const fontColor = templatePreset === 'tech' && !hasCustomBg ? '#ffffff' : textColor;
-    doc.fillColor(fontColor).fontSize(nameSize).font('Helvetica-Bold').text(recipientName, 40, nameY, {
-      align: 'center',
-      width: width - 80,
-    });
-
-    if (!hasCustomBg) {
-      // Underline
-      const nameWidth = Math.min(600, Math.max(300, recipientName.length * (nameSize * 0.55)));
-      doc.moveTo((width - nameWidth) / 2, nameY + nameSize + 10).lineTo((width + nameWidth) / 2, nameY + nameSize + 10).lineWidth(1).strokeColor('#94a3b8').stroke();
-
-      doc.fillColor(templatePreset === 'tech' ? '#cbd5e1' : '#475569').fontSize(13).font('Helvetica').text('for successfully participating in and completing', 0, eventY - 26, {
+    // 2. Event Title (Only if enabled)
+    if (showEvent && eventTitle) {
+      doc.fillColor(themeColor).fontSize(eventSize).font('Helvetica-Bold').text(eventTitle, 60, eventY, {
         align: 'center',
+        width: width - 120,
       });
     }
 
-    // Render Dynamic Event Title
-    doc.fillColor(themeColor).fontSize(eventSize).font('Helvetica-Bold').text(eventTitle, 60, eventY, {
-      align: 'center',
-      width: width - 120,
-    });
+    // 3. Custom Text Layers
+    if (Array.isArray(customLayers)) {
+      customLayers.forEach((layer) => {
+        if (!layer.text) return;
+        const textToRender = layer.text
+          .replace(/\{\{\s*name\s*\}\}/gi, recipientName)
+          .replace(/\{\{\s*event\s*\}\}/gi, eventTitle)
+          .replace(/\{\{\s*issuer\s*\}\}/gi, issuerName)
+          .replace(/\{\{\s*date\s*\}\}/gi, issueDate);
 
-    // Render Footer Details (Issue Date, Issuer Name, Cert ID)
-    if (!hasCustomBg) {
-      doc.fillColor('#64748b').fontSize(10).font('Helvetica-Bold').text('ISSUE DATE', 90, footerY);
+        doc.fillColor(layer.color || '#5a6065').fontSize(layer.size || 16).font('Helvetica').text(textToRender, 40, layer.y || 340, {
+          align: 'center',
+          width: width - 80,
+        });
+      });
+    }
+
+    // 4. Footer Details (Organizer & Issue Date - Only if enabled)
+    if (showFooter && !hasCustomBg) {
+      const fontColor = templatePreset === 'tech' ? '#ffffff' : textColor;
+      doc.fillColor('#5a6065').fontSize(10).font('Helvetica-Bold').text('ISSUE DATE', 90, footerY);
       doc.fillColor(fontColor).fontSize(11).font('Helvetica').text(issueDate, 90, footerY + 16);
 
-      doc.fillColor('#64748b').fontSize(10).font('Helvetica-Bold').text('CERTIFICATE ID', 90, footerY + 38);
+      doc.fillColor('#5a6065').fontSize(10).font('Helvetica-Bold').text('CERTIFICATE ID', 90, footerY + 38);
       doc.fillColor(themeColor).fontSize(11).font('Helvetica-Bold').text(certId, 90, footerY + 54);
 
-      // Signature line
-      doc.moveTo(width / 2 - 90, footerY + 35).lineTo(width / 2 + 90, footerY + 35).lineWidth(1).strokeColor('#cbd5e1').stroke();
-      doc.fillColor(fontColor).fontSize(14).font('Helvetica-Bold').text(issuerName, width / 2 - 120, footerY + 42, {
-        align: 'center',
-        width: 240,
-      });
-      doc.fillColor('#64748b').fontSize(10).font('Helvetica').text('Authorized Issuer', width / 2 - 120, footerY + 60, {
-        align: 'center',
-        width: 240,
-      });
-    } else {
-      // On custom backgrounds, display compact Verification ID & Date at bottom left
-      doc.fillColor('#334155').fontSize(9).font('Helvetica-Bold').text(`ID: ${certId}  |  Date: ${issueDate}`, 40, height - 35);
+      if (issuerName) {
+        doc.fillColor(fontColor).fontSize(14).font('Helvetica-Bold').text(issuerName, width / 2 - 120, footerY + 42, {
+          align: 'center',
+          width: 240,
+        });
+        doc.fillColor('#5a6065').fontSize(10).font('Helvetica').text('Authorized Issuer', width / 2 - 120, footerY + 60, {
+          align: 'center',
+          width: 240,
+        });
+      }
     }
 
-    // Render Dynamic Scannable QR Code
+    // 5. Scannable QR Code & Verification ID (Only if enabled)
     if (showQr && qrBuffer) {
       doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
-      doc.fillColor('#64748b').fontSize(7.5).font('Helvetica').text('Scan to Verify', qrX - 15, qrY + qrSize + 3, {
+      doc.fillColor('#5a6065').fontSize(7.5).font('Helvetica').text('Scan to Verify', qrX - 15, qrY + qrSize + 3, {
         align: 'center',
         width: qrSize + 30,
       });
     }
-
-    // Global Verification Footer Link
-    doc.fillColor('#94a3b8').fontSize(8).font('Helvetica').text(`Verified Credential · ${verificationUrl}`, 0, height - 22, {
-      align: 'center',
-    });
 
     doc.end();
   });
