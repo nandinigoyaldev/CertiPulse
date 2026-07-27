@@ -11,7 +11,14 @@ const config = require('./config');
 const { generateCertificateBuffer } = require('./certificateGenerator');
 const { processJobRows } = require('./jobRunner');
 const { readRowsFromWorkbookPath } = require('./sheets');
-const { getCertificate, revokeCertificate, getAllCertificates } = require('./verificationStore');
+const {
+  getCertificate,
+  revokeCertificate,
+  getAllCertificates,
+  getAnalyticsSummary,
+  getOpenBadge3Metadata,
+  trackShare,
+} = require('./verificationStore');
 const { createEmailTransporter, sendCertificateEmail } = require('./email');
 
 const os = require('os');
@@ -217,11 +224,67 @@ app.get('/api/jobs/:jobId/download-zip', async (req, res) => {
   }
 });
 
+// Analytics Overview API
+app.get('/api/analytics', (req, res) => {
+  res.json(getAnalyticsSummary());
+});
+
 // Certificate Registry & Search API
 app.get('/api/certificates', (req, res) => {
   const q = String(req.query.q || '').trim();
   const list = getAllCertificates(q);
   res.json(list);
+});
+
+// Open Badges 3.0 / W3C Verifiable Credentials Endpoint
+app.get('/api/certificates/:certId/badge.json', (req, res) => {
+  const badge = getOpenBadge3Metadata(req.params.certId, config.appBaseUrl);
+  if (!badge) {
+    return res.status(404).json({ error: 'Certificate not found' });
+  }
+  res.setHeader('Content-Type', 'application/json');
+  res.json(badge);
+});
+
+// Track Social Share API
+app.post('/api/certificates/:certId/track-share', (req, res) => {
+  const platform = req.body?.platform || 'general';
+  const updated = trackShare(req.params.certId, platform);
+  if (!updated) {
+    return res.status(404).json({ error: 'Certificate not found' });
+  }
+  res.json({ ok: true, shareCount: updated.shareCount });
+});
+
+// Direct Certificate PDF Download Endpoint
+app.get('/api/certificates/:certId/pdf', async (req, res) => {
+  const certId = req.params.certId;
+  const cert = getCertificate(certId, false);
+  if (!cert) {
+    return res.status(404).json({ error: 'Certificate not found' });
+  }
+
+  try {
+    const verificationUrl = `${config.appBaseUrl}/verify/${cert.certId}`;
+    const pdfBuffer = await generateCertificateBuffer({
+      recipientName: cert.recipientName,
+      eventTitle: cert.eventTitle,
+      issueDate: cert.issueDate,
+      issuerName: cert.issuerName,
+      certId: cert.certId,
+      verificationUrl,
+    });
+
+    const fileName = `${sanitizeFilename(cert.recipientName)}_${cert.certId}.pdf`;
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate PDF download: ' + err.message });
+  }
 });
 
 // Revoke Certificate API
@@ -281,7 +344,7 @@ app.get('/api/verify/:certId', (req, res) => {
   res.json({ valid: cert.status === 'VERIFIED', certificate: cert });
 });
 
-// Public Verification Page
+// Public Verification Page (10/10 Responsive Dark Slate UI)
 app.get('/verify/:certId', (req, res) => {
   const certId = req.params.certId;
   const cert = getCertificate(certId);
@@ -290,89 +353,270 @@ app.get('/verify/:certId', (req, res) => {
   const isRevoked = cert && cert.status === 'REVOKED';
   const isExpired = cert && cert.status === 'EXPIRED';
 
-  let statusText = 'Invalid or Unverified Credential';
-  if (isValid) statusText = 'Authentic Verified Credential';
-  if (isRevoked) statusText = 'Revoked Credential';
-  if (isExpired) statusText = 'Expired Credential';
+  let statusBadgeColor = 'linear-gradient(135deg, #10b981, #059669)';
+  let statusText = 'Authentic Verified Credential';
+  if (isRevoked) {
+    statusBadgeColor = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    statusText = 'Credential Revoked';
+  } else if (isExpired) {
+    statusBadgeColor = 'linear-gradient(135deg, #f59e0b, #d97706)';
+    statusText = 'Credential Expired';
+  } else if (!cert) {
+    statusBadgeColor = 'linear-gradient(135deg, #64748b, #475569)';
+    statusText = 'Unverified Credential';
+  }
 
-  const recipientName = cert ? cert.recipientName : 'Unknown';
+  const recipientName = cert ? cert.recipientName : 'Unknown Recipient';
   const eventTitle = cert ? cert.eventTitle : 'Unknown Event';
   const issueDate = cert ? cert.issueDate : 'N/A';
   const issuerName = cert ? cert.issuerName : 'N/A';
+  const fingerprintHash = cert ? cert.fingerprintHash || 'N/A' : 'N/A';
   const viewCount = cert ? cert.viewCount || 1 : 0;
+  const shareCount = cert ? cert.shareCount || 0 : 0;
+
   const verifyUrl = `${config.appBaseUrl}/verify/${certId}`;
+  const pdfDownloadUrl = `/api/certificates/${certId}/pdf`;
+  const badgeJsonUrl = `/api/certificates/${certId}/badge.json`;
 
   const linkedinUrl = cert
     ? `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(eventTitle)}&organizationName=${encodeURIComponent(issuerName)}&issueYear=${issueDate.split('-')[0] || '2026'}&issueMonth=${issueDate.split('-')[1] || '01'}&certUrl=${encodeURIComponent(verifyUrl)}&certId=${encodeURIComponent(certId)}`
     : '#';
 
   const twitterUrl = cert
-    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(`I just verified my official Certificate of Completion for "${eventTitle}" issued by ${issuerName}! 🎓 Check it out:`)}&url=${encodeURIComponent(verifyUrl)}`
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(`I am proud to share my verified Certificate of Completion for "${eventTitle}" issued by ${issuerName}! 🎓 Check it out:`)}&url=${encodeURIComponent(verifyUrl)}`
     : '#';
 
-  const iframeSnippet = `<iframe src="${verifyUrl}" width="500" height="300" frameborder="0"></iframe>`;
+  const whatsappUrl = cert
+    ? `https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Check out my official Certificate of Completion for "${eventTitle}": ${verifyUrl}`)}`
+    : '#';
+
+  const iframeSnippet = `<iframe src="${verifyUrl}" width="560" height="400" frameborder="0"></iframe>`;
 
   const html = `<!DOCTYPE html>
   <html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificate Verification — ${certId}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;800&display=swap" rel="stylesheet">
+    <title>Verified Credential — ${recipientName} | CertiPulse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 40px 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-      .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px; max-width: 580px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
-      .badge { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; margin-bottom: 20px; ${isValid ? 'background:#ecfdf5; color:#10b981; border:1px solid #a7f3d0;' : isRevoked ? 'background:#fef2f2; color:#ef4444; border:1px solid #fecaca;' : 'background:#fffbeb; color:#f59e0b; border:1px solid #fde68a;'} }
-      h1 { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0 0 6px 0; font-size: 1.6rem; color: #0f172a; }
-      p { color: #64748b; margin: 0 0 20px 0; font-size: 0.9rem; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; background: #f1f5f9; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; }
-      .item label { font-size: 0.75rem; color: #64748b; display: block; margin-bottom: 2px; }
-      .item span { font-size: 0.92rem; font-weight: 600; color: #0f172a; }
-      .actions { display: flex; flex-direction: column; gap: 10px; }
-      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 0.9rem; box-sizing: border-box; cursor: pointer; border: 1px solid transparent; }
-      .btn-linkedin { background: #0a66c2; color: white; }
-      .btn-twitter { background: #000000; color: white; }
-      .btn-secondary { background: #ffffff; color: #0f172a; border-color: #cbd5e1; }
-      .btn-secondary:hover { background: #f8fafc; }
-      .meta-bar { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #94a3b8; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+      :root {
+        --bg-dark: #0b0f17;
+        --card-bg: rgba(17, 24, 39, 0.75);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-teal: #10b981;
+        --accent-blue: #38bdf8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px 16px;
+        font-family: 'Inter', sans-serif;
+        background: var(--bg-dark);
+        background-image: 
+          radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+          radial-gradient(at 85% 85%, rgba(56, 189, 248, 0.12) 0px, transparent 50%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .verify-container {
+        width: 100%;
+        max-width: 640px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 36px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      }
+      .badge-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+        background: ${statusBadgeColor};
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .subtitle {
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        margin: 0 0 28px 0;
+      }
+      .data-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 28px;
+      }
+      .grid-item label {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+      }
+      .grid-item span {
+        font-size: 0.98rem;
+        font-weight: 600;
+        color: #ffffff;
+      }
+      .hash-box {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 28px;
+        font-family: monospace;
+        font-size: 0.78rem;
+        color: #a7f3d0;
+        word-break: break-all;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .hash-box label {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+      }
+      .actions-flex {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-download {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      }
+      .btn-download:hover { transform: translateY(-1px); opacity: 0.95; }
+      .btn-linkedin { background: #0a66c2; color: #ffffff; }
+      .btn-twitter { background: #000000; color: #ffffff; border: 1px solid #334155; }
+      .btn-whatsapp { background: #25d366; color: #ffffff; }
+      .btn-secondary { background: rgba(255, 255, 255, 0.06); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.1); }
+      .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+      .share-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .embed-box {
+        margin-top: 24px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .embed-box summary { font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; font-weight: 600; }
+      .embed-box input { width: 100%; margin-top: 10px; background: #000000; border: 1px solid #334155; color: #38bdf8; font-family: monospace; font-size: 0.78rem; padding: 8px; border-radius: 6px; }
+      .meta-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 28px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
     </style>
   </head>
   <body>
-    <div class="card">
-      <div class="badge">
-        <span style="width:6px; height:6px; border-radius:50%; background:${isValid ? '#10b981' : '#ef4444'};"></span>
+    <div class="verify-container">
+      <div class="badge-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
         ${statusText}
       </div>
-      <h1>${isValid ? 'Verified Event Credential' : isRevoked ? 'Credential Revoked' : 'Credential Invalid'}</h1>
-      <p>Official tamper-proof credential record issued via CertiPulse Platform.</p>
 
-      <div class="grid">
-        <div class="item"><label>Certificate ID</label><span>${certId}</span></div>
-        <div class="item"><label>Recipient Name</label><span>${recipientName}</span></div>
-        <div class="item"><label>Workshop / Event</label><span>${eventTitle}</span></div>
-        <div class="item"><label>Issue Date</label><span>${issueDate}</span></div>
-        <div class="item"><label>Issuer / Host</label><span>${issuerName}</span></div>
-        <div class="item"><label>Status</label><span style="color:${isValid ? '#10b981' : '#ef4444'}">${cert ? cert.status : 'INVALID'}</span></div>
+      <h1>${isValid ? 'Verified Certificate' : isRevoked ? 'Certificate Revoked' : 'Credential Record'}</h1>
+      <p class="subtitle">Official cryptographic record registered on CertiPulse Platform.</p>
+
+      <div class="data-grid">
+        <div class="grid-item"><label>Certificate ID</label><span>${certId}</span></div>
+        <div class="grid-item"><label>Recipient Name</label><span>${recipientName}</span></div>
+        <div class="grid-item"><label>Event / Workshop</label><span>${eventTitle}</span></div>
+        <div class="grid-item"><label>Issue Date</label><span>${issueDate}</span></div>
+        <div class="grid-item"><label>Issuer / Host</label><span>${issuerName}</span></div>
+        <div class="grid-item"><label>Verification Views</label><span>${viewCount} scan${viewCount === 1 ? '' : 's'}</span></div>
       </div>
 
-      ${isRevoked && cert.revocationReason ? `<div style="padding:12px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; font-size:0.85rem; border-radius:8px; margin-bottom:20px;"><strong>Revocation Reason:</strong> ${cert.revocationReason}</div>` : ''}
+      <div class="hash-box">
+        <label>🔒 SHA-256 Cryptographic Fingerprint Hash</label>
+        <span>${fingerprintHash}</span>
+      </div>
 
-      <div class="actions">
+      ${isRevoked && cert.revocationReason ? `<div style="padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; font-size:0.85rem; border-radius:10px; margin-bottom:24px;"><strong>Revocation Reason:</strong> ${cert.revocationReason}</div>` : ''}
+
+      <div class="actions-flex">
         ${isValid ? `
-        <a href="${linkedinUrl}" target="_blank" rel="noopener" class="btn btn-linkedin">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-          Add to LinkedIn Profile
+        <a href="${pdfDownloadUrl}" class="btn btn-download" target="_blank">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF Certificate
         </a>
-        <a href="${twitterUrl}" target="_blank" rel="noopener" class="btn btn-twitter">
-          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          Share Certificate on X / Twitter
-        </a>` : ''}
-        <a href="/" class="btn btn-secondary">CertiPulse Platform Dashboard</a>
+
+        <div class="share-row">
+          <a href="${linkedinUrl}" target="_blank" rel="noopener" class="btn btn-linkedin">
+            LinkedIn
+          </a>
+          <a href="${twitterUrl}" target="_blank" rel="noopener" class="btn btn-twitter">
+            X / Twitter
+          </a>
+          <a href="${whatsappUrl}" target="_blank" rel="noopener" class="btn btn-whatsapp">
+            WhatsApp
+          </a>
+        </div>
+        ` : ''}
+
+        <a href="${badgeJsonUrl}" target="_blank" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Open Badges 3.0 W3C JSON Metadata
+        </a>
       </div>
 
-      <div class="meta-bar">
-        <span>Verified ${viewCount} time${viewCount === 1 ? '' : 's'}</span>
-        <span>Tamper-proof Registry</span>
+      <details class="embed-box">
+        <summary>⚡ Embed Badge Code (Website / Portfolio)</summary>
+        <input type="text" readonly value="${iframeSnippet.replace(/"/g, '&quot;')}" onclick="this.select()">
+      </details>
+
+      <div class="meta-footer">
+        <span>CertiPulse Credential Engine v2.0</span>
+        <span>${shareCount} Social Shares</span>
       </div>
     </div>
   </body>

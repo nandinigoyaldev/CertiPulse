@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-
 const os = require('os');
+const crypto = require('crypto');
 
 const isVercel = Boolean(process.env.VERCEL || process.env.NOW_BUILDER);
 let DATA_DIR = isVercel ? path.join(os.tmpdir(), 'data') : path.resolve(process.cwd(), 'data');
@@ -49,24 +49,46 @@ function generateCertId() {
   return id;
 }
 
-function registerCertificate({ recipientName, recipientEmail, eventTitle, issueDate, expiryDate = null, issuerName, extraData = {} }) {
+function generateFingerprint(certId, recipientEmail, eventTitle, issuedAt) {
+  const payload = `${certId}:${recipientEmail}:${eventTitle}:${issuedAt}`;
+  return crypto.createHash('sha256').update(payload).digest('hex');
+}
+
+function registerCertificate({
+  recipientName,
+  recipientEmail,
+  eventTitle,
+  issueDate,
+  expiryDate = null,
+  issuerName,
+  extraData = {},
+}) {
   let certId = generateCertId();
   while (store[certId]) {
     certId = generateCertId();
   }
 
+  const issuedAt = new Date().toISOString();
+  const recipientCleanEmail = (recipientEmail || '').trim().toLowerCase();
+  const cleanEvent = (eventTitle || 'Event').trim();
+
+  const fingerprintHash = generateFingerprint(certId, recipientCleanEmail, cleanEvent, issuedAt);
+
   const record = {
     certId,
-    recipientName: recipientName.trim(),
-    recipientEmail: recipientEmail.trim().toLowerCase(),
-    eventTitle: eventTitle.trim(),
+    recipientName: (recipientName || 'Participant').trim(),
+    recipientEmail: recipientCleanEmail,
+    eventTitle: cleanEvent,
     issueDate: issueDate || new Date().toISOString().split('T')[0],
     expiryDate: expiryDate || null,
     issuerName: issuerName ? issuerName.trim() : 'CertiPulse Organizer',
-    issuedAt: new Date().toISOString(),
+    issuedAt,
+    fingerprintHash,
     status: 'VERIFIED', // 'VERIFIED', 'REVOKED', 'EXPIRED'
     revocationReason: null,
     viewCount: 0,
+    shareCount: 0,
+    lastVerifiedAt: null,
     extraData,
   };
 
@@ -83,6 +105,7 @@ function getCertificate(certId, incrementView = true) {
 
   if (incrementView) {
     record.viewCount = (record.viewCount || 0) + 1;
+    record.lastVerifiedAt = new Date().toISOString();
     saveStore(store);
   }
 
@@ -95,6 +118,17 @@ function getCertificate(certId, incrementView = true) {
     }
   }
 
+  return record;
+}
+
+function trackShare(certId, platform = 'general') {
+  if (!certId) return null;
+  const cleanId = String(certId).trim().toUpperCase();
+  const record = store[cleanId];
+  if (!record) return null;
+
+  record.shareCount = (record.shareCount || 0) + 1;
+  saveStore(store);
   return record;
 }
 
@@ -126,10 +160,74 @@ function getAllCertificates(filterQuery = '') {
     .sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
 }
 
+function getAnalyticsSummary() {
+  const list = Object.values(store);
+  const totalIssued = list.length;
+  const verifiedCount = list.filter((c) => c.status === 'VERIFIED').length;
+  const revokedCount = list.filter((c) => c.status === 'REVOKED').length;
+  const totalViews = list.reduce((acc, c) => acc + (c.viewCount || 0), 0);
+  const totalShares = list.reduce((acc, c) => acc + (c.shareCount || 0), 0);
+
+  return {
+    totalIssued,
+    verifiedCount,
+    revokedCount,
+    totalViews,
+    totalShares,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function getOpenBadge3Metadata(certId, baseUrl = 'http://localhost:3000') {
+  const cert = getCertificate(certId, false);
+  if (!cert) return null;
+
+  const appUrl = baseUrl.replace(/\/$/, '');
+
+  return {
+    '@context': 'https://w3id.org/openbadges/v2',
+    id: `${appUrl}/api/certificates/${cert.certId}/badge.json`,
+    type: 'Assertion',
+    recipient: {
+      type: 'email',
+      hashed: false,
+      identity: cert.recipientEmail,
+    },
+    issuedOn: cert.issuedAt,
+    verification: {
+      type: 'hosted',
+      url: `${appUrl}/verify/${cert.certId}`,
+    },
+    badge: {
+      id: `${appUrl}/badge-class/${encodeURIComponent(cert.eventTitle)}`,
+      type: 'BadgeClass',
+      name: cert.eventTitle,
+      description: `Official Certificate of Completion for ${cert.eventTitle} issued to ${cert.recipientName}.`,
+      image: `${appUrl}/api/certificates/${cert.certId}/preview.png`,
+      issuer: {
+        id: appUrl,
+        type: 'Profile',
+        name: cert.issuerName,
+        url: appUrl,
+      },
+    },
+    evidence: `${appUrl}/verify/${cert.certId}`,
+    signature: {
+      type: 'CryptographicHashSHA256',
+      hash: cert.fingerprintHash,
+      status: cert.status,
+    },
+  };
+}
+
 module.exports = {
   registerCertificate,
   getCertificate,
+  trackShare,
   revokeCertificate,
   getAllCertificates,
+  getAnalyticsSummary,
+  getOpenBadge3Metadata,
   generateCertId,
+  generateFingerprint,
 };

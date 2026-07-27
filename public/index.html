@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CertiPulse — Enterprise Certificate Platform & Credential Automation</title>
-  <meta name="description" content="Upload pre-designed certificate PNG templates, parse rosters, generate QR-verified PDFs, dispatch automated emails, and manage credential revocations.">
+  <title>CertiPulse ⚡ Enterprise Credential Automation & Verification</title>
+  <meta name="description" content="Next-generation credential platform for dynamic certificate generation, interactive drag-and-drop studio, QR verification, Open Badges 3.0, and automated dispatch.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -12,30 +12,30 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Header -->
+    <!-- Top Navigation Bar -->
     <header class="navbar">
       <div class="brand">
         <div class="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
         </div>
-        <span class="brand-name">CertiPulse</span>
-        <span class="brand-tag">Enterprise Credentials</span>
+        <span class="brand-name">CertiPulse ⚡</span>
+        <span class="brand-tag">v2.0 Enterprise</span>
       </div>
 
       <nav class="nav-tabs">
         <button class="tab-btn active" data-tab="studio">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
           Certificate Studio
         </button>
         <button class="tab-btn" data-tab="dispatch">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-          Email Dispatcher
+          Batch Dispatch Engine
         </button>
         <button class="tab-btn" data-tab="registry">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Credential Registry
         </button>
-        <button class="tab-btn" data-tab="verify">
+        <button class="tab-btn" data-tab="simulator">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
           Verification Portal
         </button>
@@ -43,40 +43,80 @@
 
       <div class="header-status">
         <span class="status-pill">
-          <span class="dot"></span> Engine Online
+          <span class="dot"></span> Platform Online
         </span>
       </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main Content Body -->
     <main class="main-content">
-      <!-- Tab 1: Certificate Studio -->
+      <!-- Real-Time Analytics Bar -->
+      <section class="analytics-bar">
+        <div class="stat-card">
+          <div class="stat-icon" style="color:#10b981;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="stat-info">
+            <h4>Total Credentials Issued</h4>
+            <div class="stat-value" id="stat-total">0</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="color:#38bdf8;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div class="stat-info">
+            <h4>Authentic Verified</h4>
+            <div class="stat-value" id="stat-verified">0</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="color:#6366f1;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="stat-info">
+            <h4>Verification Views</h4>
+            <div class="stat-value" id="stat-views">0</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="color:#f59e0b;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </div>
+          <div class="stat-info">
+            <h4>Social Shares</h4>
+            <div class="stat-value" id="stat-shares">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: Certificate Studio & Interactive Canvas -->
       <section id="tab-studio" class="tab-pane active">
         <div class="studio-grid">
-          <!-- Controls Panel -->
+          <!-- Design Controls Form -->
           <div class="card">
             <div class="card-header">
-              <h2>Certificate Studio</h2>
-              <p>Upload your own pre-designed PNG certificate template or use built-in presets.</p>
+              <h2>Certificate Studio & Layout Engine</h2>
+              <p>Upload pre-designed Canva/Photoshop PNG artwork or choose built-in presets.</p>
             </div>
 
             <form id="cert-design-form">
               <div class="form-group">
-                <label>🖼️ Upload Pre-Designed Certificate Artwork (PNG / JPG)</label>
-                <div class="drop-zone" id="pngDropZone" style="padding: 20px 14px;">
-                  <div class="drop-title" style="font-size:0.85rem;">Drop pre-designed PNG image or <span>browse</span></div>
-                  <div class="drop-subtitle">Uploads custom Canva/Photoshop certificate artwork</div>
+                <label>🖼️ Upload Custom PNG Template Artwork</label>
+                <div class="drop-zone" id="pngDropZone">
+                  <div class="drop-title">Drop custom PNG artwork image or <span>browse file</span></div>
+                  <div class="drop-subtitle">High resolution A4 Landscape (PNG / JPG)</div>
                   <input type="file" id="customBgFile" accept="image/png, image/jpeg" class="file-input">
                 </div>
-                <div id="png-file-status" class="file-info-box hidden" style="margin-top:6px; padding:6px 10px; font-size:0.8rem;"></div>
+                <div id="png-file-status" class="file-info-box hidden" style="margin-top:8px; padding:8px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; font-size:0.82rem; color:#a7f3d0;"></div>
               </div>
 
-              <div class="divider" style="margin: 14px 0;"></div>
-
               <div class="form-group">
-                <label for="templatePreset">Or Choose Built-in Preset Theme</label>
+                <label for="templatePreset">Preset Design Theme</label>
                 <select id="templatePreset">
-                  <option value="custom">Custom Uploaded PNG Image</option>
                   <option value="modern" selected>Modern Slate & Teal</option>
                   <option value="gold">Executive Gold Diploma</option>
                   <option value="tech">Dark Cyber Minimalist</option>
@@ -84,9 +124,11 @@
                 </select>
               </div>
 
+              <div class="divider"></div>
+
               <div class="form-group">
                 <label for="eventTitle">Event / Workshop Title</label>
-                <input type="text" id="eventTitle" value="Full-Stack Web Development Masterclass">
+                <input type="text" id="eventTitle" value="Full-Stack Web Development Workshop">
               </div>
 
               <div class="form-group">
@@ -96,80 +138,68 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="issuerName">Organizer / Host</label>
+                  <label for="issuerName">Host / Organizer</label>
                   <input type="text" id="issuerName" value="Nandini Goyal">
                 </div>
                 <div class="form-group">
-                  <label for="issueDate">Issue Date</label>
-                  <input type="date" id="issueDate">
+                  <label for="themeColor">Accent Color</label>
+                  <input type="text" id="themeColor" value="#10b981">
                 </div>
               </div>
 
-              <!-- Element Position & QR Code Controls -->
-              <div class="accordion-item mt-4">
-                <button type="button" class="accordion-header" id="toggle-positions">
-                  <span>📐 Position Dynamic Text & Verification QR</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-                <div class="accordion-content hidden" id="positions-panel">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="nameY">Name Y-Position</label>
-                      <input type="range" id="nameY" min="60" max="480" value="198">
-                    </div>
-                    <div class="form-group">
-                      <label for="nameSize">Name Font Size</label>
-                      <input type="range" id="nameSize" min="18" max="54" value="36">
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="eventY">Event Y-Position</label>
-                      <input type="range" id="eventY" min="100" max="500" value="285">
-                    </div>
-                    <div class="form-group">
-                      <label for="eventSize">Event Font Size</label>
-                      <input type="range" id="eventSize" min="14" max="36" value="24">
-                    </div>
-                  </div>
-                  <div class="divider" style="margin:10px 0;"></div>
-                  <div class="form-group">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:0.84rem;">
-                      <input type="checkbox" id="showQr" checked>
-                      Embed Scannable Verification QR Code
-                    </label>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="qrX">QR X-Position</label>
-                      <input type="range" id="qrX" min="30" max="750" value="680">
-                    </div>
-                    <div class="form-group">
-                      <label for="qrY">QR Y-Position</label>
-                      <input type="range" id="qrY" min="30" max="500" value="430">
-                    </div>
-                  </div>
+              <div class="divider"></div>
+              <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:14px; color:#ffffff;">🎯 Fine-Tune Text & QR Coordinates</h3>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nameY">Name Position (Y)</label>
+                  <input type="number" id="nameY" value="200" step="5">
+                </div>
+                <div class="form-group">
+                  <label for="nameSize">Name Font Size</label>
+                  <input type="number" id="nameSize" value="34" step="1">
                 </div>
               </div>
 
-              <div class="form-actions mt-4">
-                <button type="button" id="btn-preview-pdf" class="btn btn-secondary">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  Preview PDF
-                </button>
-                <button type="button" id="btn-proceed-dispatch" class="btn btn-primary">
-                  Proceed to Dispatch &rarr;
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="eventY">Event Position (Y)</label>
+                  <input type="number" id="eventY" value="280" step="5">
+                </div>
+                <div class="form-group">
+                  <label for="eventSize">Event Font Size</label>
+                  <input type="number" id="eventSize" value="22" step="1">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="qrX">QR Code X Position</label>
+                  <input type="number" id="qrX" value="660" step="5">
+                </div>
+                <div class="form-group">
+                  <label for="qrY">QR Code Y Position</label>
+                  <input type="number" id="qrY" value="400" step="5">
+                </div>
+              </div>
+
+              <div style="margin-top: 20px;">
+                <button type="button" id="btn-generate-preview" class="btn btn-primary" style="width: 100%;">
+                  ⚡ Generate Live Canvas & PDF Preview
                 </button>
               </div>
             </form>
           </div>
 
-          <!-- Preview Canvas Panel -->
-          <div class="card preview-card">
-            <div class="preview-header">
-              <h3>Live Certificate Canvas Preview</h3>
-              <span class="badge">A4 Landscape</span>
+          <!-- Preview & Canvas Panel -->
+          <div class="preview-container">
+            <div class="preview-toolbar">
+              <span style="font-weight:700; font-size:0.9rem; color:#ffffff;">🖥️ Studio Live Canvas Preview</span>
+              <button id="btn-download-sample-pdf" class="btn btn-secondary btn-sm">
+                📥 Download Sample PDF
+              </button>
             </div>
+
             <div class="canvas-wrapper">
               <canvas id="certCanvas" width="842" height="595"></canvas>
             </div>
@@ -177,175 +207,126 @@
         </div>
       </section>
 
-      <!-- Tab 2: Email Dispatcher -->
+      <!-- TAB 2: Batch Dispatch Engine -->
       <section id="tab-dispatch" class="tab-pane">
-        <div class="dispatch-grid">
-          <!-- Left Column: Upload & Config -->
-          <div class="card">
-            <div class="card-header">
-              <h2>1. Upload Roster</h2>
-              <p>Upload Excel (.xlsx, .xlsm) or CSV file with attendee names and emails.</p>
-            </div>
-
-            <form id="upload-form" enctype="multipart/form-data">
-              <div class="drop-zone" id="dropZone">
-                <div class="drop-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <div class="drop-title">Drop file here or <span>browse</span></div>
-                <div class="drop-subtitle">Excel (.xlsx, .csv) up to 25MB</div>
-                <input type="file" id="fileInput" name="workbook" accept=".xlsx,.xlsm,.csv" class="file-input" required>
-              </div>
-              <div id="file-info" class="file-info-box hidden"></div>
-
-              <div class="divider"></div>
-
-              <div class="card-header">
-                <h2>2. Email Template Settings</h2>
-                <p>Customize email subject and body sent to attendees.</p>
-              </div>
-
-              <div class="form-group">
-                <label for="emailSubject">Email Subject</label>
-                <input type="text" id="emailSubject" value="Your Certificate of Completion for {{event}}">
-              </div>
-
-              <div class="form-group">
-                <label for="emailBody">Email Template (HTML)</label>
-                <div class="tag-toolbar">
-                  <button type="button" class="tag-btn" data-tag="{{name}}">+ {{name}}</button>
-                  <button type="button" class="tag-btn" data-tag="{{event}}">+ {{event}}</button>
-                  <button type="button" class="tag-btn" data-tag="{{certificate_id}}">+ {{certificate_id}}</button>
-                  <button type="button" class="tag-btn" data-tag="{{verification_url}}">+ {{verification_url}}</button>
-                </div>
-                <textarea id="emailBody" rows="5" placeholder="Enter HTML body template..."></textarea>
-              </div>
-
-              <div class="accordion-item">
-                <button type="button" class="accordion-header" id="toggle-smtp">
-                  <span>🔒 SMTP Mail Server Configuration (Optional Custom Mailer)</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-                <div class="accordion-content hidden" id="smtp-panel">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="smtpHost">SMTP Host</label>
-                      <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
-                    </div>
-                    <div class="form-group">
-                      <label for="smtpPort">Port</label>
-                      <input type="number" id="smtpPort" placeholder="587">
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="smtpUser">Sender Email</label>
-                      <input type="email" id="smtpUser" placeholder="you@domain.com">
-                    </div>
-                    <div class="form-group">
-                      <label for="smtpPass">App Password</label>
-                      <input type="password" id="smtpPass" placeholder="••••••••••••">
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-actions mt-4">
-                <button type="submit" id="btn-start-dispatch" class="btn btn-primary btn-large">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                  Launch Batch Dispatch Engine
-                </button>
-              </div>
-            </form>
+        <div class="card">
+          <div class="card-header">
+            <h2>Batch Dispatch Engine & Spreadsheet Automation</h2>
+            <p>Upload recipient roster (CSV / Excel), configure SMTP email credentials, and launch automated dispatch.</p>
           </div>
 
-          <!-- Right Column: Live Job Status -->
-          <div class="card">
-            <div class="card-header">
-              <h2>3. Dispatch Monitor & ZIP Downloads</h2>
-              <p>Real-time execution log and bulk ZIP export.</p>
+          <form id="upload-form">
+            <div class="form-group">
+              <label>📊 Recipient Roster Spreadsheet (CSV / XLSX)</label>
+              <div class="drop-zone" id="csvDropZone">
+                <div class="drop-title">Drop CSV / Excel file or <span>browse file</span></div>
+                <div class="drop-subtitle">Auto-detects name, email, and phone headers</div>
+                <input type="file" id="workbookFile" accept=".csv, .xlsx, .xlsm" class="file-input">
+              </div>
+              <div id="csv-file-status" class="file-info-box hidden" style="margin-top:8px; padding:8px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; font-size:0.82rem; color:#a7f3d0;"></div>
             </div>
 
-            <div id="active-job-container" class="active-job-box hidden">
-              <div class="job-status-header">
-                <span class="spinner"></span>
-                <span id="active-job-title">Processing upload...</span>
+            <div class="divider"></div>
+
+            <h3 style="font-size:1rem; font-weight:700; margin-bottom:14px; color:#ffffff;">📧 SMTP Delivery Configuration</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="smtpHost">SMTP Host</label>
+                <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
               </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar" id="jobProgressBar" style="width: 0%;"></div>
+              <div class="form-group">
+                <label for="smtpPort">SMTP Port</label>
+                <input type="number" id="smtpPort" placeholder="587">
               </div>
-              <div class="job-stats-summary" id="jobStatsSummary">Starting email engine...</div>
             </div>
 
-            <div class="jobs-list" id="jobsList">
-              <div class="empty-state">No active or historical uploads. Upload a file above to begin.</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="smtpUser">SMTP Username / Email</label>
+                <input type="text" id="smtpUser" placeholder="you@domain.com">
+              </div>
+              <div class="form-group">
+                <label for="smtpPass">SMTP Password / App Key</label>
+                <input type="text" id="smtpPass" placeholder="••••••••••••">
+              </div>
             </div>
-          </div>
+
+            <div class="divider"></div>
+
+            <h3 style="font-size:1rem; font-weight:700; margin-bottom:14px; color:#ffffff;">✉️ Email Template Customization</h3>
+            <div class="form-group">
+              <label for="emailSubject">Email Subject</label>
+              <input type="text" id="emailSubject" value="Your Certificate of Completion for {{event}}">
+            </div>
+
+            <div style="margin-top:24px;">
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px;">
+                🚀 Queue Batch Certificate Dispatch & Generation
+              </button>
+            </div>
+          </form>
         </div>
       </section>
 
-      <!-- Tab 3: Credential Registry & Analytics -->
+      <!-- TAB 3: Credential Registry & Governance -->
       <section id="tab-registry" class="tab-pane">
         <div class="card">
-          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <h2>Credential Registry & Audit Trail</h2>
-              <p>Search issued credentials, monitor verification views, resend emails, or revoke certificates.</p>
+              <h2>Credential Registry & Governance Audit</h2>
+              <p>Tamper-proof audit log, revocation controls, and view analytics.</p>
             </div>
-            <div style="width:280px;">
-              <input type="text" id="registrySearchInput" placeholder="Search by Name, Email, or Cert ID...">
-            </div>
+            <input type="text" id="search-input" placeholder="Search by recipient or cert ID..." style="width: 280px;">
           </div>
 
-          <div style="overflow-x:auto;">
-            <table id="registryTable" style="width:100%; border-collapse:collapse; text-align:left; font-size:0.85rem;">
+          <div class="table-wrapper">
+            <table>
               <thead>
-                <tr style="background:var(--bg-subtle); border-bottom:1px solid var(--border-color); color:var(--text-secondary);">
-                  <th style="padding:10px 12px;">Certificate ID</th>
-                  <th style="padding:10px 12px;">Recipient</th>
-                  <th style="padding:10px 12px;">Event / Workshop</th>
-                  <th style="padding:10px 12px;">Issued Date</th>
-                  <th style="padding:10px 12px;">Views</th>
-                  <th style="padding:10px 12px;">Status</th>
-                  <th style="padding:10px 12px; text-align:right;">Actions</th>
+                <tr>
+                  <th>Cert ID</th>
+                  <th>Recipient Name</th>
+                  <th>Recipient Email</th>
+                  <th>Event Title</th>
+                  <th>Status</th>
+                  <th>Scans</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
-              <tbody id="registryTableBody">
-                <tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-tertiary);">Loading issued credentials...</td></tr>
+              <tbody id="registry-table-body">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+                    Loading credential registry...
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- Tab 4: Verification Portal -->
-      <section id="tab-verify" class="tab-pane">
-        <div class="verify-container">
-          <div class="card">
-            <div class="verify-hero">
-              <div class="verify-badge-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-              </div>
-              <h2>Credential Verification Portal</h2>
-              <p>Enter a unique Certificate ID to verify recipient authenticity and issue details.</p>
-            </div>
+      <!-- TAB 4: Verification Portal Simulator -->
+      <section id="tab-simulator" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <h2>Public Verification Portal Simulator</h2>
+            <p>Enter any Certificate ID to preview the recipient verification card experience.</p>
+          </div>
 
-            <form id="verify-form" class="verify-search-box">
-              <input type="text" id="verifyInput" placeholder="e.g. CERT-LUEFBCDS" required>
-              <button type="submit" class="btn btn-primary">Verify Credential</button>
-            </form>
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <input type="text" id="sim-cert-id" placeholder="e.g. CERT-DEMO1234" style="flex:1;">
+            <button id="btn-run-sim" class="btn btn-primary">Verify Credential</button>
+          </div>
 
-            <div id="verify-result" class="verify-result-box hidden"></div>
+          <div id="sim-frame-container" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; min-height: 450px; background: #000;">
+            <iframe id="sim-iframe" src="/verify/CERT-DEMO1234" style="width: 100%; height: 500px; border: none;"></iframe>
           </div>
         </div>
       </section>
     </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <p>CertiPulse Credentials Platform · Secure Enterprise Certificate Generation & Verification Engine</p>
-    </footer>
   </div>
+
+  <!-- Toast Popup Container -->
+  <div id="toast-container"></div>
 
   <script src="app.js"></script>
 </body>

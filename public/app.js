@@ -13,13 +13,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (tabId === 'registry') {
         loadRegistryTable();
+      } else if (tabId === 'studio') {
+        renderCanvasPreview();
       }
+      fetchAnalytics();
     });
   });
 
-  // Certificate Studio Canvas & Controls
+  // Analytics Fetching
+  async function fetchAnalytics() {
+    try {
+      const res = await fetch('/api/analytics');
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('stat-total').textContent = data.totalIssued || 0;
+      document.getElementById('stat-verified').textContent = data.verifiedCount || 0;
+      document.getElementById('stat-views').textContent = data.totalViews || 0;
+      document.getElementById('stat-shares').textContent = data.totalShares || 0;
+    } catch (err) {
+      console.error('Failed to load analytics:', err);
+    }
+  }
+
+  // Toast Notification System
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+
+    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // Canvas Studio Elements
   const canvas = document.getElementById('certCanvas');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas ? canvas.getContext('2d') : null;
 
   const templatePresetSelect = document.getElementById('templatePreset');
   const customBgFileInput = document.getElementById('customBgFile');
@@ -29,30 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const eventTitleInput = document.getElementById('eventTitle');
   const subtitleInput = document.getElementById('certificateSubtitle');
   const issuerNameInput = document.getElementById('issuerName');
-  const issueDateInput = document.getElementById('issueDate');
+  const themeColorInput = document.getElementById('themeColor');
 
-  // Positioning & QR Sliders
   const nameYInput = document.getElementById('nameY');
   const nameSizeInput = document.getElementById('nameSize');
   const eventYInput = document.getElementById('eventY');
   const eventSizeInput = document.getElementById('eventSize');
-  const showQrCheckbox = document.getElementById('showQr');
   const qrXInput = document.getElementById('qrX');
   const qrYInput = document.getElementById('qrY');
 
-  let activeThemeColor = '#0f766e';
   let loadedCustomBgImage = null;
   let customBgDataUrl = null;
-
-  // Set default issue date to today
-  if (issueDateInput && !issueDateInput.value) {
-    issueDateInput.value = new Date().toISOString().split('T')[0];
-  }
 
   // Handle Custom PNG Background File Upload
   function handleImageFile(file) {
     if (!file || !file.type.startsWith('image/')) {
-      alert('Please upload a valid PNG or JPG image file.');
+      showToast('Please upload a valid PNG or JPG image file.', 'error');
       return;
     }
     const reader = new FileReader();
@@ -61,11 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const img = new Image();
       img.onload = () => {
         loadedCustomBgImage = img;
-        if (templatePresetSelect) templatePresetSelect.value = 'custom';
         if (pngFileStatus) {
-          pngFileStatus.textContent = `✓ Loaded PNG Artwork: ${file.name} (${img.width}x${img.height}px)`;
+          pngFileStatus.textContent = `✓ Loaded Custom PNG Artwork: ${file.name} (${img.width}x${img.height}px)`;
           pngFileStatus.classList.remove('hidden');
         }
+        showToast('Custom PNG certificate template uploaded successfully!', 'success');
         renderCanvasPreview();
       };
       img.src = customBgDataUrl;
@@ -101,477 +133,337 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  templatePresetSelect?.addEventListener('change', () => {
-    renderCanvasPreview();
-  });
-
+  // Live Canvas Rendering Engine
   function renderCanvasPreview() {
-    if (!canvas || !ctx) return;
+    if (!ctx || !canvas) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
+    const width = canvas.width;
+    const height = canvas.height;
 
-    const preset = templatePresetSelect?.value || (loadedCustomBgImage ? 'custom' : 'modern');
+    const preset = templatePresetSelect ? templatePresetSelect.value : 'modern';
+    const themeColor = themeColorInput ? themeColorInput.value : '#10b981';
 
-    // 1. Draw Background (Custom image or Preset)
-    if (preset === 'custom' && loadedCustomBgImage) {
-      ctx.drawImage(loadedCustomBgImage, 0, 0, w, h);
+    const eventTitle = eventTitleInput ? eventTitleInput.value : 'Full-Stack Web Development Workshop';
+    const subtitle = subtitleInput ? subtitleInput.value : 'Certificate of Completion';
+    const issuerName = issuerNameInput ? issuerNameInput.value : 'Nandini Goyal';
+
+    const nameY = Number.parseInt(nameYInput?.value || '200', 10);
+    const nameSize = Number.parseInt(nameSizeInput?.value || '34', 10);
+    const eventY = Number.parseInt(eventYInput?.value || '280', 10);
+    const eventSize = Number.parseInt(eventSizeInput?.value || '22', 10);
+
+    const qrX = Number.parseInt(qrXInput?.value || '660', 10);
+    const qrY = Number.parseInt(qrYInput?.value || '400', 10);
+
+    ctx.clearRect(0, 0, width, height);
+
+    if (loadedCustomBgImage) {
+      ctx.drawImage(loadedCustomBgImage, 0, 0, width, height);
     } else {
+      // Render Selected Preset Frame
       if (preset === 'gold') {
         ctx.fillStyle = '#fdfbf7';
-        ctx.fillRect(0, 0, w, h);
-        ctx.lineWidth = 4;
+        ctx.fillRect(0, 0, width, height);
+
         ctx.strokeStyle = '#b45309';
-        ctx.strokeRect(20, 20, w - 40, h - 40);
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(20, 20, width - 40, height - 40);
+
         ctx.strokeStyle = '#d97706';
-        ctx.strokeRect(28, 28, w - 56, h - 56);
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(28, 28, width - 56, height - 56);
       } else if (preset === 'tech') {
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, w, h);
-        ctx.lineWidth = 3;
+        ctx.fillRect(0, 0, width, height);
+
         ctx.strokeStyle = '#38bdf8';
-        ctx.strokeRect(20, 20, w - 40, h - 40);
+        ctx.lineWidth = 3;
+        ctx.strokeRect(20, 20, width - 40, height - 40);
       } else if (preset === 'classic') {
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.lineWidth = 6;
+        ctx.fillRect(0, 0, width, height);
+
         ctx.strokeStyle = '#1e293b';
-        ctx.strokeRect(24, 24, w - 48, h - 48);
+        ctx.lineWidth = 6;
+        ctx.strokeRect(24, 24, width - 48, height - 48);
       } else {
-        // Modern Teal (default)
+        // Modern Teal / Custom Accent (default)
         ctx.fillStyle = '#faf8f5';
-        ctx.fillRect(0, 0, w, h);
+        ctx.fillRect(0, 0, width, height);
 
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = activeThemeColor;
-        ctx.strokeRect(20, 20, w - 40, h - 40);
+        ctx.strokeStyle = themeColor;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(20, 20, width - 40, height - 40);
 
-        ctx.lineWidth = 1;
         ctx.strokeStyle = '#cbd5e1';
-        ctx.strokeRect(26, 26, w - 52, h - 52);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(26, 26, width - 52, height - 52);
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = activeThemeColor;
-        ctx.strokeRect(32, 32, w - 64, h - 64);
-
-        // Corner accents
-        ctx.fillStyle = activeThemeColor;
+        // Accent Corners
+        ctx.fillStyle = themeColor;
         ctx.fillRect(20, 20, 36, 36);
-        ctx.fillRect(w - 56, 20, 36, 36);
-        ctx.fillRect(20, h - 56, 36, 36);
-        ctx.fillRect(w - 56, h - 56, 36, 36);
+        ctx.fillRect(width - 56, 20, 36, 36);
+        ctx.fillRect(20, height - 56, 36, 36);
+        ctx.fillRect(width - 56, height - 56, 36, 36);
       }
 
-      // Default Header / Subtitle
-      if (preset !== 'custom') {
-        ctx.textAlign = 'center';
-        ctx.fillStyle = activeThemeColor;
-        ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText('OFFICIAL CREDENTIAL', w / 2, 70);
+      // Header Badge & Subtitle Text
+      ctx.textAlign = 'center';
+      ctx.fillStyle = themeColor;
+      ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('OFFICIAL CREDENTIAL', width / 2, 70);
 
-        ctx.fillStyle = preset === 'tech' ? '#f8fafc' : '#334155';
-        ctx.font = '28px "Outfit", sans-serif';
-        ctx.fillText(subtitleInput?.value || 'Certificate of Completion', w / 2, 105);
+      ctx.fillStyle = preset === 'tech' ? '#f8fafc' : '#1e293b';
+      ctx.font = '26px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(subtitle, width / 2, 105);
 
-        ctx.beginPath();
-        ctx.moveTo(w / 2 - 100, 130);
-        ctx.lineTo(w / 2 + 100, 130);
-        ctx.strokeStyle = activeThemeColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillStyle = preset === 'tech' ? '#94a3b8' : '#64748b';
-        ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText('THIS IS PROUDLY PRESENTED TO', w / 2, 155);
-      }
-    }
-
-    // 2. Draw Recipient Name (Dynamic Position & Size)
-    const nameY = Number.parseInt(nameYInput?.value || '198', 10);
-    const nameSize = Number.parseInt(nameSizeInput?.value || '36', 10);
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = preset === 'tech' && preset !== 'custom' ? '#ffffff' : '#0f172a';
-    ctx.font = `bold ${nameSize}px "Outfit", sans-serif`;
-    ctx.fillText('Jane Doe (Sample Recipient)', w / 2, nameY);
-
-    // Underline
-    if (preset !== 'custom') {
+      // Line
       ctx.beginPath();
-      ctx.moveTo(w / 2 - 180, nameY + 22);
-      ctx.lineTo(w / 2 + 180, nameY + 22);
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1;
+      ctx.moveTo(width / 2 - 100, 130);
+      ctx.lineTo(width / 2 + 100, 130);
+      ctx.strokeStyle = themeColor;
+      ctx.lineWidth = 2;
       ctx.stroke();
+
+      ctx.fillStyle = preset === 'tech' ? '#94a3b8' : '#64748b';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.fillText('THIS IS PROUDLY PRESENTED TO', width / 2, 160);
     }
 
-    // 3. Draw Event Accomplishment & Title (Dynamic Position & Size)
-    const eventY = Number.parseInt(eventYInput?.value || '285', 10);
-    const eventSize = Number.parseInt(eventSizeInput?.value || '24', 10);
+    // Recipient Name
+    const fontColor = preset === 'tech' && !loadedCustomBgImage ? '#ffffff' : '#0f172a';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = fontColor;
+    ctx.font = `bold ${nameSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillText('Jane Doe (Sample)', width / 2, nameY);
 
-    if (preset !== 'custom') {
+    if (!loadedCustomBgImage) {
       ctx.fillStyle = preset === 'tech' ? '#cbd5e1' : '#475569';
-      ctx.font = '14px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('for successfully participating in and completing', w / 2, eventY - 26);
+      ctx.font = '13px Inter, sans-serif';
+      ctx.fillText('for successfully participating in and completing', width / 2, eventY - 26);
     }
 
-    ctx.fillStyle = activeThemeColor;
-    ctx.font = `bold ${eventSize}px "Outfit", sans-serif`;
-    ctx.fillText(eventTitleInput?.value || 'Workshop Title', w / 2, eventY);
+    // Event Title
+    ctx.fillStyle = themeColor;
+    ctx.font = `bold ${eventSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillText(eventTitle, width / 2, eventY);
 
-    // 4. Draw Footer Details (For Presets)
-    const footerY = 440;
-    if (preset !== 'custom') {
+    // Footer Info
+    if (!loadedCustomBgImage) {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#64748b';
-      ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('ISSUE DATE', 90, footerY);
-      ctx.fillStyle = preset === 'tech' ? '#fff' : '#1e293b';
-      ctx.font = '12px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(issueDateInput?.value || new Date().toISOString().split('T')[0], 90, footerY + 18);
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.fillText('ISSUE DATE', 90, 420);
+      ctx.fillStyle = fontColor;
+      ctx.font = '11px Inter, sans-serif';
+      ctx.fillText(new Date().toISOString().split('T')[0], 90, 436);
 
       ctx.fillStyle = '#64748b';
-      ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('CERTIFICATE ID', 90, footerY + 42);
-      ctx.fillStyle = activeThemeColor;
-      ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('CERT-PREVIEW88', 90, footerY + 58);
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.fillText('CERTIFICATE ID', 90, 458);
+      ctx.fillStyle = themeColor;
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.fillText('CERT-DEMO1234', 90, 474);
 
       ctx.textAlign = 'center';
-      ctx.beginPath();
-      ctx.moveTo(w / 2 - 80, footerY + 30);
-      ctx.lineTo(w / 2 + 80, footerY + 30);
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = preset === 'tech' ? '#fff' : '#0f172a';
-      ctx.font = 'bold 15px "Outfit", sans-serif';
-      ctx.fillText(issuerNameInput?.value || 'Organizer Name', w / 2, footerY + 48);
+      ctx.fillStyle = fontColor;
+      ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(issuerName, width / 2, 460);
       ctx.fillStyle = '#64748b';
-      ctx.font = '11px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('Authorized Issuer', w / 2, footerY + 66);
+      ctx.font = '10px Inter, sans-serif';
+      ctx.fillText('Authorized Issuer', width / 2, 476);
     }
 
-    // 5. Draw Dynamic Scannable Verification QR Code Overlay
-    if (showQrCheckbox?.checked) {
-      const qrX = Number.parseInt(qrXInput?.value || '680', 10);
-      const qrY = Number.parseInt(qrYInput?.value || '430', 10);
-      const qrSize = 70;
+    // QR Code Placeholder
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(qrX, qrY, 80, 80);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(qrX, qrY, 80, 80);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(qrX, qrY, qrSize, qrSize);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = activeThemeColor;
-      ctx.strokeRect(qrX, qrY, qrSize, qrSize);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(qrX + 10, qrY + 10, 20, 20);
+    ctx.fillRect(qrX + 50, qrY + 10, 20, 20);
+    ctx.fillRect(qrX + 10, qrY + 50, 20, 20);
 
-      ctx.fillStyle = '#1e293b';
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('[QR CODE]', qrX + qrSize / 2, qrY + qrSize / 2 + 3);
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '9px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('Scan to Verify', qrX + qrSize / 2, qrY + qrSize + 14);
-    }
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Scan to Verify', qrX + 40, qrY + 94);
   }
 
-  // Attach live preview event listeners
+  // Attach Input Listeners for Live Updates
   [
+    templatePresetSelect,
     eventTitleInput,
     subtitleInput,
     issuerNameInput,
-    issueDateInput,
+    themeColorInput,
     nameYInput,
     nameSizeInput,
     eventYInput,
     eventSizeInput,
-    showQrCheckbox,
     qrXInput,
     qrYInput,
-  ].forEach((el) => {
-    el?.addEventListener('input', renderCanvasPreview);
-    el?.addEventListener('change', renderCanvasPreview);
+  ].forEach((input) => {
+    input?.addEventListener('input', renderCanvasPreview);
+    input?.addEventListener('change', renderCanvasPreview);
   });
 
-  renderCanvasPreview();
-
-  // Accordion Toggle for Position Sliders
-  document.getElementById('toggle-positions')?.addEventListener('click', () => {
-    document.getElementById('positions-panel')?.classList.toggle('hidden');
-  });
-
-  // Generate PDF Preview Button
-  document.getElementById('btn-preview-pdf')?.addEventListener('click', async () => {
+  // Download Sample PDF Action
+  document.getElementById('btn-download-sample-pdf')?.addEventListener('click', async () => {
+    showToast('Generating sample PDF certificate...', 'info');
     try {
-      const isCustom = templatePresetSelect?.value === 'custom' || !!customBgDataUrl;
+      const payload = {
+        recipientName: 'Jane Doe',
+        eventTitle: eventTitleInput ? eventTitleInput.value : 'Workshop',
+        certificateSubtitle: subtitleInput ? subtitleInput.value : 'Certificate of Completion',
+        issuerName: issuerNameInput ? issuerNameInput.value : 'Nandini Goyal',
+        themeColor: themeColorInput ? themeColorInput.value : '#10b981',
+        customBgDataUrl,
+        templatePreset: templatePresetSelect ? templatePresetSelect.value : 'modern',
+        nameY: nameYInput ? nameYInput.value : '200',
+        nameSize: nameSizeInput ? nameSizeInput.value : '34',
+        eventY: eventYInput ? eventYInput.value : '280',
+        eventSize: eventSizeInput ? eventSizeInput.value : '22',
+        qrX: qrXInput ? qrXInput.value : '660',
+        qrY: qrYInput ? qrYInput.value : '400',
+      };
+
       const res = await fetch('/api/preview-certificate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipientName: 'Jane Doe',
-          eventTitle: eventTitleInput?.value,
-          certificateSubtitle: subtitleInput?.value,
-          issuerName: issuerNameInput?.value,
-          issueDate: issueDateInput?.value,
-          themeColor: activeThemeColor,
-          customBgDataUrl: isCustom ? customBgDataUrl : null,
-          templatePreset: isCustom ? 'custom' : (templatePresetSelect?.value || 'modern'),
-          nameY: nameYInput?.value,
-          nameSize: nameSizeInput?.value,
-          eventY: eventYInput?.value,
-          eventSize: eventSizeInput?.value,
-          showQr: showQrCheckbox?.checked,
-          qrX: qrXInput?.value,
-          qrY: qrYInput?.value,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Preview generation failed');
+      if (!res.ok) throw new Error('PDF generation failed.');
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Sample_Certificate_Preview.pdf';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      showToast('Sample PDF downloaded successfully!', 'success');
     } catch (err) {
-      alert('Error generating PDF preview: ' + err.message);
+      showToast('Failed to download PDF preview: ' + err.message, 'error');
     }
   });
 
-  document.getElementById('btn-proceed-dispatch')?.addEventListener('click', () => {
-    document.querySelector('.tab-btn[data-tab="dispatch"]')?.click();
+  document.getElementById('btn-generate-preview')?.addEventListener('click', () => {
+    renderCanvasPreview();
+    showToast('Canvas preview updated!', 'success');
   });
 
-  // Roster File Upload Drop Zone
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const fileInfo = document.getElementById('file-info');
-
-  if (dropZone && fileInput) {
-    ['dragenter', 'dragover'].forEach((eventName) => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      });
-    });
-
-    ['dragleave', 'drop'].forEach((eventName) => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-      });
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      if (e.dataTransfer.files.length) {
-        fileInput.files = e.dataTransfer.files;
-        updateFileInfo();
-      }
-    });
-
-    fileInput.addEventListener('change', updateFileInfo);
-  }
-
-  function updateFileInfo() {
-    if (fileInput.files.length) {
-      const f = fileInput.files[0];
-      fileInfo.textContent = `Selected Roster File: ${f.name} (${Math.round(f.size / 1024)} KB)`;
-      fileInfo.classList.remove('hidden');
-    }
-  }
-
-  // Accordion Toggle for SMTP Setup
-  document.getElementById('toggle-smtp')?.addEventListener('click', () => {
-    document.getElementById('smtp-panel')?.classList.toggle('hidden');
-  });
-
-  // Tag Buttons Insertion into Email Textarea
-  const emailBodyTextarea = document.getElementById('emailBody');
-  document.querySelectorAll('.tag-btn').forEach((tagBtn) => {
-    tagBtn.addEventListener('click', () => {
-      const tag = tagBtn.getAttribute('data-tag');
-      if (emailBodyTextarea && tag) {
-        const start = emailBodyTextarea.selectionStart;
-        const end = emailBodyTextarea.selectionEnd;
-        const val = emailBodyTextarea.value;
-        emailBodyTextarea.value = val.substring(0, start) + tag + val.substring(end);
-        emailBodyTextarea.focus();
-        emailBodyTextarea.selectionStart = emailBodyTextarea.selectionEnd = start + tag.length;
-      }
-    });
-  });
-
-  // Upload Form Submit
+  // Batch Upload Form Handler
   const uploadForm = document.getElementById('upload-form');
-  const activeJobBox = document.getElementById('active-job-container');
-  const activeJobTitle = document.getElementById('active-job-title');
-  const progressBar = document.getElementById('jobProgressBar');
-  const jobStatsSummary = document.getElementById('jobStatsSummary');
-  const jobsList = document.getElementById('jobsList');
-
   uploadForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!fileInput.files.length) {
-      alert('Please select a spreadsheet file first.');
+
+    const fileInput = document.getElementById('workbookFile');
+    if (!fileInput || !fileInput.files.length) {
+      showToast('Please select a spreadsheet file (.csv or .xlsx) to dispatch.', 'error');
       return;
     }
 
-    const formData = new FormData(uploadForm);
-    const isCustom = templatePresetSelect?.value === 'custom' || !!customBgDataUrl;
+    const formData = new FormData();
+    formData.append('workbook', fileInput.files[0]);
+    formData.append('eventTitle', eventTitleInput ? eventTitleInput.value : '');
+    formData.append('certificateSubtitle', subtitleInput ? subtitleInput.value : '');
+    formData.append('issuerName', issuerNameInput ? issuerNameInput.value : '');
+    formData.append('themeColor', themeColorInput ? themeColorInput.value : '');
+    if (customBgDataUrl) formData.append('customBgDataUrl', customBgDataUrl);
 
-    formData.append('eventTitle', eventTitleInput?.value || '');
-    formData.append('certificateSubtitle', subtitleInput?.value || '');
-    formData.append('issuerName', issuerNameInput?.value || '');
-    formData.append('issueDate', issueDateInput?.value || '');
-    formData.append('themeColor', activeThemeColor);
-    formData.append('templatePreset', isCustom ? 'custom' : (templatePresetSelect?.value || 'modern'));
-    if (isCustom && customBgDataUrl) {
-      formData.append('customBgDataUrl', customBgDataUrl);
-    }
-    formData.append('nameY', nameYInput?.value || '198');
-    formData.append('nameSize', nameSizeInput?.value || '36');
-    formData.append('eventY', eventYInput?.value || '285');
-    formData.append('eventSize', eventSizeInput?.value || '24');
-    formData.append('showQr', showQrCheckbox?.checked ? 'true' : 'false');
-    formData.append('qrX', qrXInput?.value || '680');
-    formData.append('qrY', qrYInput?.value || '430');
+    formData.append('smtpHost', document.getElementById('smtpHost')?.value || '');
+    formData.append('smtpPort', document.getElementById('smtpPort')?.value || '');
+    formData.append('smtpUser', document.getElementById('smtpUser')?.value || '');
+    formData.append('smtpPass', document.getElementById('smtpPass')?.value || '');
+    formData.append('emailSubject', document.getElementById('emailSubject')?.value || '');
+
+    showToast('Uploading roster spreadsheet & queuing dispatch...', 'info');
 
     try {
-      activeJobBox?.classList.remove('hidden');
-      if (activeJobTitle) activeJobTitle.textContent = 'Uploading and processing spreadsheet...';
-      if (progressBar) progressBar.style.width = '10%';
-
       const res = await fetch('/upload', {
         method: 'POST',
         body: formData,
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Upload failed');
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
 
-      uploadForm.reset();
-      fileInfo?.classList.add('hidden');
-      pollJobs();
+      showToast(`Batch queued! Job ID: ${data.jobId}`, 'success');
+      fetchAnalytics();
     } catch (err) {
-      alert('Upload error: ' + err.message);
-      activeJobBox?.classList.add('hidden');
+      showToast('Dispatch error: ' + err.message, 'error');
     }
   });
 
-  // Poll Jobs List & ZIP Download
-  async function pollJobs() {
-    try {
-      const res = await fetch('/jobs');
-      if (!res.ok) return;
-
-      const jobs = await res.json();
-      renderJobsList(jobs);
-    } catch (err) {
-      console.error('Failed to fetch jobs:', err);
-    }
-  }
-
-  function renderJobsList(jobs) {
-    if (!jobsList) return;
-
-    if (!jobs || jobs.length === 0) {
-      jobsList.innerHTML = '<div class="empty-state">No active or historical uploads. Upload a file above to begin.</div>';
-      return;
-    }
-
-    const activeJob = jobs.find((j) => j.status === 'processing' || j.status === 'queued');
-
-    if (activeJob && activeJobBox) {
-      activeJobBox.classList.remove('hidden');
-      activeJobTitle.textContent = `Dispatching emails for ${activeJob.originalName}...`;
-      const processed = activeJob.rowsProcessed || 0;
-      const total = activeJob.totalRows || 1;
-      const pct = Math.min(100, Math.round((processed / total) * 100));
-      if (progressBar) progressBar.style.width = `${pct}%`;
-      if (jobStatsSummary) jobStatsSummary.textContent = `Status: ${activeJob.status.toUpperCase()} (${processed}/${total} processed)`;
-    } else if (activeJobBox) {
-      activeJobBox.classList.add('hidden');
-    }
-
-    jobsList.innerHTML = jobs
-      .map((job) => {
-        const summary = job.summary
-          ? `Sent: ${job.summary.sent} | Failed: ${job.summary.failed} | Invalid Emails: ${job.summary.invalidEmail}`
-          : 'Processing upload...';
-
-        const downloadZipBtn = job.status === 'done'
-          ? `<a href="/api/jobs/${job.id}/download-zip" class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem; margin-top:8px;">📦 Download All Certificates (.zip)</a>`
-          : '';
-
-        return `
-          <div class="job-card-item">
-            <div class="job-item-top">
-              <div class="job-item-title">${escapeHtml(job.originalName)}</div>
-              <span class="job-badge ${job.status}">${job.status}</span>
-            </div>
-            <div class="job-meta-row">${summary}</div>
-            ${downloadZipBtn}
-            ${job.error ? `<div style="color:var(--danger); font-size:0.8rem; margin-top:4px;">${escapeHtml(job.error)}</div>` : ''}
-          </div>
-        `;
-      })
-      .join('');
-  }
-
-  // Load Credential Registry Table
-  const registryTableBody = document.getElementById('registryTableBody');
-  const registrySearchInput = document.getElementById('registrySearchInput');
+  // Load Registry Table
+  const searchInput = document.getElementById('search-input');
+  searchInput?.addEventListener('input', () => loadRegistryTable());
 
   async function loadRegistryTable() {
-    if (!registryTableBody) return;
-    try {
-      const q = registrySearchInput?.value || '';
-      const res = await fetch(`/api/certificates?q=${encodeURIComponent(q)}`);
-      if (!res.ok) return;
+    const tbody = document.getElementById('registry-table-body');
+    if (!tbody) return;
 
-      const certs = await res.json();
-      if (!certs || certs.length === 0) {
-        registryTableBody.innerHTML = `<tr><td colspan="7" style="padding:20px; text-align:center; color:var(--text-tertiary);">No issued certificates found.</td></tr>`;
+    const query = searchInput ? searchInput.value.trim() : '';
+
+    try {
+      const res = await fetch(`/api/certificates?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error('Failed to load certificates');
+      const list = await res.json();
+
+      if (!list.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+              No credentials found matching query.
+            </td>
+          </tr>`;
         return;
       }
 
-      registryTableBody.innerHTML = certs
+      tbody.innerHTML = list
         .map((cert) => {
-          const statusBadge = cert.status === 'VERIFIED'
-            ? `<span style="color:var(--success); font-weight:600;">✓ VERIFIED</span>`
-            : `<span style="color:var(--danger); font-weight:600;">✕ ${cert.status}</span>`;
+          let badgeClass = 'verified';
+          if (cert.status === 'REVOKED') badgeClass = 'revoked';
+          if (cert.status === 'EXPIRED') badgeClass = 'expired';
 
           return `
-            <tr style="border-bottom:1px solid var(--border-color);">
-              <td style="padding:10px 12px; font-weight:600; font-family:monospace;">${escapeHtml(cert.certId)}</td>
-              <td style="padding:10px 12px; font-weight:600;">${escapeHtml(cert.recipientName)}<br><small style="color:var(--text-secondary); font-weight:normal;">${escapeHtml(cert.recipientEmail)}</small></td>
-              <td style="padding:10px 12px;">${escapeHtml(cert.eventTitle)}</td>
-              <td style="padding:10px 12px;">${escapeHtml(cert.issueDate)}</td>
-              <td style="padding:10px 12px;">${cert.viewCount || 0}</td>
-              <td style="padding:10px 12px;">${statusBadge}</td>
-              <td style="padding:10px 12px; text-align:right;">
-                <a href="/verify/${cert.certId}" target="_blank" class="btn btn-secondary" style="padding:3px 8px; font-size:0.75rem;">View</a>
-                <button type="button" class="btn btn-secondary btn-resend" data-id="${cert.certId}" style="padding:3px 8px; font-size:0.75rem;">Resend</button>
-                ${cert.status === 'VERIFIED' ? `<button type="button" class="btn btn-secondary btn-revoke" data-id="${cert.certId}" style="padding:3px 8px; font-size:0.75rem; color:var(--danger);">Revoke</button>` : ''}
+            <tr>
+              <td><strong style="color:var(--accent-teal); font-family:monospace;">${cert.certId}</strong></td>
+              <td><strong>${cert.recipientName}</strong></td>
+              <td style="color:var(--text-secondary);">${cert.recipientEmail}</td>
+              <td>${cert.eventTitle}</td>
+              <td><span class="badge-status ${badgeClass}">${cert.status}</span></td>
+              <td>${cert.viewCount || 0} views</td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <a href="/api/certificates/${cert.certId}/pdf" target="_blank" class="btn btn-secondary btn-sm" title="Download PDF">
+                    📄 PDF
+                  </a>
+                  <button class="btn btn-secondary btn-sm btn-resend" data-id="${cert.certId}">
+                    ✉️ Resend
+                  </button>
+                  ${cert.status === 'VERIFIED' ? `<button class="btn btn-danger btn-sm btn-revoke" data-id="${cert.certId}">Revoke</button>` : ''}
+                </div>
               </td>
-            </tr>
-          `;
+            </tr>`;
         })
         .join('');
 
-      // Attach action listeners
+      // Attach Actions
       document.querySelectorAll('.btn-resend').forEach((btn) => {
         btn.addEventListener('click', async () => {
           const certId = btn.getAttribute('data-id');
-          if (!confirm(`Resend certificate email to recipient for ${certId}?`)) return;
+          showToast(`Resending email for ${certId}...`, 'info');
           try {
-            const res = await fetch(`/api/certificates/${certId}/resend`, { method: 'POST' });
-            const data = await res.json();
-            alert(data.message || data.error);
-          } catch (err) {
-            alert('Failed to resend: ' + err.message);
+            const r = await fetch(`/api/certificates/${certId}/resend`, { method: 'POST' });
+            if (!r.ok) throw new Error('Failed to resend email');
+            showToast(`Email resent for ${certId}!`, 'success');
+          } catch (e) {
+            showToast(e.message, 'error');
           }
         });
       });
@@ -579,96 +471,40 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.btn-revoke').forEach((btn) => {
         btn.addEventListener('click', async () => {
           const certId = btn.getAttribute('data-id');
-          const reason = prompt('Enter revocation reason:', 'Issued in error or cancelled registration');
-          if (!reason) return;
+          const reason = prompt('Reason for certificate revocation:', 'Revoked by organizer');
+          if (reason === null) return;
+
           try {
-            const res = await fetch(`/api/certificates/${certId}/revoke`, {
+            const r = await fetch(`/api/certificates/${certId}/revoke`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ reason }),
             });
-            const data = await res.json();
-            if (res.ok) {
-              alert(`Certificate ${certId} revoked successfully.`);
-              loadRegistryTable();
-            } else {
-              alert(data.error || 'Revocation failed');
-            }
-          } catch (err) {
-            alert('Revocation error: ' + err.message);
+            if (!r.ok) throw new Error('Failed to revoke certificate');
+            showToast(`Certificate ${certId} revoked.`, 'success');
+            loadRegistryTable();
+            fetchAnalytics();
+          } catch (e) {
+            showToast(e.message, 'error');
           }
         });
       });
     } catch (err) {
-      console.error('Failed to load registry:', err);
+      console.error(err);
     }
   }
 
-  registrySearchInput?.addEventListener('input', () => {
-    loadRegistryTable();
-  });
-
-  function escapeHtml(str) {
-    return String(str || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  setInterval(pollJobs, 3000);
-  pollJobs();
-
-  // Verification Form Search
-  const verifyForm = document.getElementById('verify-form');
-  const verifyInput = document.getElementById('verifyInput');
-  const verifyResult = document.getElementById('verify-result');
-
-  verifyForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const certId = verifyInput?.value.trim();
-    if (!certId) return;
-
-    try {
-      verifyResult?.classList.remove('hidden');
-      if (verifyResult) verifyResult.innerHTML = '<div style="color:var(--text-muted);">Searching credential registry...</div>';
-
-      const res = await fetch(`/api/verify/${encodeURIComponent(certId)}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.valid) {
-        verifyResult.innerHTML = `
-          <div class="verify-status-banner invalid">
-            ❌ Credential Not Found or Invalid
-          </div>
-          <p style="color:var(--text-muted); font-size:0.9rem;">No official certificate found matching ID: <strong>${escapeHtml(certId)}</strong>. Please verify the ID code.</p>
-        `;
-        return;
-      }
-
-      const cert = data.certificate;
-      const linkedinUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(cert.eventTitle)}&organizationName=${encodeURIComponent(cert.issuerName)}&issueYear=${(cert.issueDate || '').split('-')[0] || '2026'}&issueMonth=${(cert.issueDate || '').split('-')[1] || '01'}&certUrl=${encodeURIComponent(window.location.origin + '/verify/' + cert.certId)}&certId=${encodeURIComponent(cert.certId)}`;
-
-      verifyResult.innerHTML = `
-        <div class="verify-status-banner valid">
-          ✓ Official Authenticated Credential
-        </div>
-        <div class="verify-details-grid">
-          <div class="detail-item"><label>Certificate ID</label><span>${escapeHtml(cert.certId)}</span></div>
-          <div class="detail-item"><label>Recipient Name</label><span>${escapeHtml(cert.recipientName)}</span></div>
-          <div class="detail-item"><label>Event / Workshop</label><span>${escapeHtml(cert.eventTitle)}</span></div>
-          <div class="detail-item"><label>Issue Date</label><span>${escapeHtml(cert.issueDate)}</span></div>
-          <div class="detail-item"><label>Issuer / Host</label><span>${escapeHtml(cert.issuerName)}</span></div>
-          <div class="detail-item"><label>Status</label><span style="color:var(--success)">${escapeHtml(cert.status)}</span></div>
-        </div>
-        <div style="margin-top:16px;">
-          <a href="${linkedinUrl}" target="_blank" class="btn btn-primary btn-large" style="background:#0a66c2;">Add to LinkedIn Profile</a>
-        </div>
-      `;
-    } catch (err) {
-      if (verifyResult) {
-        verifyResult.innerHTML = `<div style="color:var(--danger)">Verification lookup failed: ${escapeHtml(err.message)}</div>`;
-      }
+  // Verification Simulator
+  document.getElementById('btn-run-sim')?.addEventListener('click', () => {
+    const certId = document.getElementById('sim-cert-id')?.value.trim() || 'CERT-DEMO1234';
+    const iframe = document.getElementById('sim-iframe');
+    if (iframe) {
+      iframe.src = `/verify/${encodeURIComponent(certId)}`;
+      showToast(`Simulating verification portal for ${certId}...`, 'info');
     }
   });
+
+  // Initial Load
+  renderCanvasPreview();
+  fetchAnalytics();
 });
