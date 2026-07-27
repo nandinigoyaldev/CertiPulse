@@ -1,6 +1,7 @@
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
 const fs = require('fs');
+const path = require('path');
 
 /**
  * Advanced PDF Certificate Generator.
@@ -83,8 +84,13 @@ async function generateCertificateBuffer(options = {}) {
           if (customBackground.startsWith('data:image')) {
             const base64Data = customBackground.replace(/^data:image\/\w+;base64,/, '');
             bgBuffer = Buffer.from(base64Data, 'base64');
-          } else if (fs.existsSync(customBackground)) {
-            bgBuffer = fs.readFileSync(customBackground);
+          } else {
+            const publicPath = path.resolve(process.cwd(), 'public', customBackground.replace(/^\//, ''));
+            if (fs.existsSync(publicPath)) {
+              bgBuffer = fs.readFileSync(publicPath);
+            } else if (fs.existsSync(customBackground)) {
+              bgBuffer = fs.readFileSync(customBackground);
+            }
           }
         }
         if (Buffer.isBuffer(bgBuffer)) {
@@ -166,11 +172,17 @@ async function generateCertificateBuffer(options = {}) {
           .replace(/\{\{\s*name\s*\}\}/gi, recipientName)
           .replace(/\{\{\s*event\s*\}\}/gi, eventTitle)
           .replace(/\{\{\s*issuer\s*\}\}/gi, issuerName)
-          .replace(/\{\{\s*date\s*\}\}/gi, issueDate);
+          .replace(/\{\{\s*date\s*\}\}/gi, issueDate)
+          .replace(/\{\{\s*cert_id\s*\}\}/gi, certId)
+          .replace(/\{\{\s*certid\s*\}\}/gi, certId);
 
-        doc.fillColor(layer.color || '#5a6065').fontSize(layer.size || 16).font('Helvetica').text(textToRender, 40, layer.y || 340, {
-          align: 'center',
-          width: width - 80,
+        const alignment = layer.align || 'center';
+        const xPos = layer.x !== undefined ? Number(layer.x) : 40;
+        const textWidth = alignment === 'left' || alignment === 'right' ? 500 : width - 80;
+
+        doc.fillColor(layer.color || '#5a6065').fontSize(layer.size || 16).font('Helvetica').text(textToRender, xPos, layer.y || 340, {
+          align: alignment,
+          width: textWidth,
         });
       });
     }

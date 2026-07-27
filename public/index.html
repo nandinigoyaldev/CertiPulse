@@ -109,10 +109,15 @@
             <form id="cert-design-form">
               <!-- STEP 1: Upload PNG Artwork -->
               <div class="form-group">
-                <label>🖼️ 1. Certificate PNG Artwork Template</label>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <label style="margin:0;">🖼️ 1. Certificate Artwork Template</label>
+                  <button type="button" id="btn-load-work2hire-preset" class="btn btn-secondary btn-sm">
+                    ✨ Load Work2Hire Template
+                  </button>
+                </div>
                 <div class="drop-zone" id="pngDropZone">
                   <div class="drop-title">Drop your Canva / Photoshop PNG certificate or <span>browse file</span></div>
-                  <div class="drop-subtitle">High resolution A4 Landscape PNG (842 x 595 px)</div>
+                  <div class="drop-subtitle">High resolution A4 Landscape (PNG / JPG)</div>
                   <input type="file" id="customBgFile" accept="image/png, image/jpeg" class="file-input">
                 </div>
                 <div id="png-file-status" class="file-info-box hidden" style="margin-top:8px; padding:10px; background:#e8f5e9; border:1.5px solid #1a1d20; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#2d6a4f; font-weight:700;"></div>
@@ -142,11 +147,11 @@
                 <div class="form-row">
                   <div>
                     <label style="font-size:0.75rem;">Vertical Position (Y)</label>
-                    <input type="number" id="nameY" value="230" step="5">
+                    <input type="number" id="nameY" value="270" step="5">
                   </div>
                   <div>
                     <label style="font-size:0.75rem;">Font Size (px)</label>
-                    <input type="number" id="nameSize" value="34" step="1">
+                    <input type="number" id="nameSize" value="30" step="1">
                   </div>
                 </div>
               </div>
@@ -155,10 +160,10 @@
               <div class="custom-layer-card" style="background:#faf8f5;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                   <label style="margin:0; font-size:0.9rem;">✍️ Organizer / Host Name</label>
-                  <label class="checkbox-label" style="margin:0;"><input type="checkbox" id="showFooter" checked> Enabled</label>
+                  <label class="checkbox-label" style="margin:0;"><input type="checkbox" id="showFooter"> Enabled</label>
                 </div>
                 <div class="form-group" style="margin-bottom:8px;">
-                  <input type="text" id="issuerName" value="Nandini Goyal & CertiPulse Team">
+                  <input type="text" id="issuerName" value="Nandini Goyal & Work2Hire Team">
                 </div>
               </div>
 
@@ -171,11 +176,11 @@
                 <div class="form-row">
                   <div>
                     <label style="font-size:0.75rem;">QR Position X</label>
-                    <input type="number" id="qrX" value="680" step="5">
+                    <input type="number" id="qrX" value="742" step="5">
                   </div>
                   <div>
                     <label style="font-size:0.75rem;">QR Position Y</label>
-                    <input type="number" id="qrY" value="430" step="5">
+                    <input type="number" id="qrY" value="494" step="5">
                   </div>
                 </div>
               </div>
@@ -192,12 +197,12 @@
                   <div class="layer-toggles-grid">
                     <label class="checkbox-label"><input type="checkbox" id="showBadge"> Header Badge</label>
                     <label class="checkbox-label"><input type="checkbox" id="showSubtitle"> Subtitle Text</label>
-                    <label class="checkbox-label"><input type="checkbox" id="showEvent" checked> Event Title</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showEvent"> Event Title</label>
                   </div>
 
                   <div class="form-group">
                     <label for="eventTitle">Event Title (supports {{event}} variable)</label>
-                    <input type="text" id="eventTitle" value="Full-Stack Web Development Workshop">
+                    <input type="text" id="eventTitle" value="Work2Hire Campus Manager Program">
                   </div>
 
                   <div class="form-row">
@@ -213,7 +218,7 @@
 
                   <div class="form-group">
                     <label for="themeColor">Accent Color</label>
-                    <input type="text" id="themeColor" value="#e05638">
+                    <input type="text" id="themeColor" value="#0a4b8f">
                   </div>
 
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; margin-bottom:10px;">
@@ -297,7 +302,7 @@
             <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; margin-bottom:16px; color:#1a1d20;">✉️ Email Template Customization</h3>
             <div class="form-group">
               <label for="emailSubject">Email Subject</label>
-              <input type="text" id="emailSubject" value="Your Certificate of Completion for {{event}}">
+              <input type="text" id="emailSubject" value="Your Certificate of Completion from Work2Hire">
             </div>
 
             <div style="margin-top:28px;">
