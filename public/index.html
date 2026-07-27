@@ -12,14 +12,14 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Top Navigation Bar -->
+    <!-- De-congested Header Navbar -->
     <header class="navbar">
       <div class="brand">
         <div class="brand-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
         </div>
         <span class="brand-name">CertiPulse ⚡</span>
-        <span class="brand-tag">Architectural Edition</span>
+        <span class="brand-tag">Architectural</span>
       </div>
 
       <nav class="nav-tabs">
@@ -41,9 +41,12 @@
         </button>
       </nav>
 
-      <div class="header-status">
+      <div class="header-actions">
+        <a href="/sample_roster.csv" download="sample_roster.csv" class="btn btn-secondary btn-sm">
+          📥 Download Test Roster CSV
+        </a>
         <span class="status-pill">
-          <span class="dot"></span> System Operational
+          <span class="dot"></span> Online
         </span>
       </div>
     </header>
@@ -99,13 +102,13 @@
           <!-- Design Controls Form -->
           <div class="card">
             <div class="card-header">
-              <h2>Certificate Studio & Layout Engine</h2>
-              <p>Upload pre-designed Canva/Photoshop PNG artwork or choose built-in presets.</p>
+              <h2>Certificate Designer & Layer Engine</h2>
+              <p>Supports dynamic placeholders: <code>{{name}}</code>, <code>{{event}}</code>, <code>{{grade}}</code>, <code>{{score}}</code>, <code>{{track}}</code>.</p>
             </div>
 
             <form id="cert-design-form">
               <div class="form-group">
-                <label>🖼️ Upload Custom PNG Template Artwork</label>
+                <label>🖼️ Custom Certificate PNG Template Artwork</label>
                 <div class="drop-zone" id="pngDropZone">
                   <div class="drop-title">Drop custom PNG artwork image or <span>browse file</span></div>
                   <div class="drop-subtitle">High resolution A4 Landscape (PNG / JPG)</div>
@@ -125,9 +128,21 @@
               </div>
 
               <div class="divider"></div>
+              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; margin-bottom:12px; color:#1a1d20;">👁️ Designer Layer Toggles</h3>
+              
+              <div class="layer-toggles-grid">
+                <label class="checkbox-label"><input type="checkbox" id="showBadge" checked> Header Badge</label>
+                <label class="checkbox-label"><input type="checkbox" id="showSubtitle" checked> Subtitle Text</label>
+                <label class="checkbox-label"><input type="checkbox" id="showName" checked> Recipient Name</label>
+                <label class="checkbox-label"><input type="checkbox" id="showEvent" checked> Event Title</label>
+                <label class="checkbox-label"><input type="checkbox" id="showFooter" checked> Footer Signatures</label>
+                <label class="checkbox-label"><input type="checkbox" id="showQr" checked> Scannable QR Code</label>
+              </div>
+
+              <div class="divider"></div>
 
               <div class="form-group">
-                <label for="eventTitle">Event / Workshop Title</label>
+                <label for="eventTitle">Event / Workshop Title (supports {{variables}})</label>
                 <input type="text" id="eventTitle" value="Full-Stack Web Development Workshop">
               </div>
 
@@ -138,8 +153,8 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="issuerName">Host / Organizer</label>
-                  <input type="text" id="issuerName" value="Nandini Goyal">
+                  <label for="issuerName">Host / Organizer / Partner</label>
+                  <input type="text" id="issuerName" value="Nandini Goyal & CertiPulse">
                 </div>
                 <div class="form-group">
                   <label for="themeColor">Accent Color</label>
@@ -148,44 +163,52 @@
               </div>
 
               <div class="divider"></div>
-              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; font-weight:700; margin-bottom:14px; color:#1a1d20;">🎯 Fine-Tune Text & QR Coordinates</h3>
+              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; margin-bottom:12px; color:#1a1d20;">🎯 Text & Position Controls</h3>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="nameY">Name Position (Y)</label>
+                  <label for="nameY">Name Y Position</label>
                   <input type="number" id="nameY" value="200" step="5">
                 </div>
                 <div class="form-group">
-                  <label for="nameSize">Name Font Size</label>
+                  <label for="nameSize">Name Size</label>
                   <input type="number" id="nameSize" value="34" step="1">
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="eventY">Event Position (Y)</label>
+                  <label for="eventY">Event Y Position</label>
                   <input type="number" id="eventY" value="280" step="5">
                 </div>
                 <div class="form-group">
-                  <label for="eventSize">Event Font Size</label>
+                  <label for="eventSize">Event Size</label>
                   <input type="number" id="eventSize" value="22" step="1">
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="qrX">QR Code X Position</label>
+                  <label for="qrX">QR X Position</label>
                   <input type="number" id="qrX" value="660" step="5">
                 </div>
                 <div class="form-group">
-                  <label for="qrY">QR Code Y Position</label>
+                  <label for="qrY">QR Y Position</label>
                   <input type="number" id="qrY" value="400" step="5">
                 </div>
               </div>
 
+              <div class="divider"></div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; color:#1a1d20;">➕ Dynamic Custom Text Layers</h3>
+                <button type="button" id="btn-add-custom-layer" class="btn btn-secondary btn-sm">+ Add Layer</button>
+              </div>
+
+              <div id="custom-layers-container"></div>
+
               <div style="margin-top: 24px;">
                 <button type="button" id="btn-generate-preview" class="btn btn-primary" style="width: 100%;">
-                  ⚡ Generate Live Canvas & PDF Preview
+                  ⚡ Refresh Live Canvas Preview
                 </button>
               </div>
             </form>
@@ -220,7 +243,7 @@
               <label>📊 Recipient Roster Spreadsheet (CSV / XLSX)</label>
               <div class="drop-zone" id="csvDropZone">
                 <div class="drop-title">Drop CSV / Excel file or <span>browse file</span></div>
-                <div class="drop-subtitle">Auto-detects name, email, and phone headers</div>
+                <div class="drop-subtitle">Auto-detects name, email, phone, grade, score headers</div>
                 <input type="file" id="workbookFile" accept=".csv, .xlsx, .xlsm" class="file-input">
               </div>
               <div id="csv-file-status" class="file-info-box hidden" style="margin-top:8px; padding:10px; background:#e8f5e9; border:1.5px solid #1a1d20; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#2d6a4f; font-weight:700;"></div>

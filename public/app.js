@@ -99,6 +99,85 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrXInput = document.getElementById('qrX');
   const qrYInput = document.getElementById('qrY');
 
+  // Layer Visibility Checkboxes
+  const showBadgeCheck = document.getElementById('showBadge');
+  const showSubtitleCheck = document.getElementById('showSubtitle');
+  const showNameCheck = document.getElementById('showName');
+  const showEventCheck = document.getElementById('showEvent');
+  const showFooterCheck = document.getElementById('showFooter');
+  const showQrCheck = document.getElementById('showQr');
+
+  // Dynamic Custom Text Layers
+  const customLayersContainer = document.getElementById('custom-layers-container');
+  const btnAddCustomLayer = document.getElementById('btn-add-custom-layer');
+  let customLayers = [];
+
+  btnAddCustomLayer?.addEventListener('click', () => {
+    const layerId = Date.now();
+    const layer = {
+      id: layerId,
+      text: 'Grade: {{grade}} | Score: {{score}}%',
+      y: 340,
+      size: 16,
+      color: '#5a6065',
+    };
+    customLayers.push(layer);
+    renderCustomLayerControls();
+    renderCanvasPreview();
+  });
+
+  function renderCustomLayerControls() {
+    if (!customLayersContainer) return;
+    customLayersContainer.innerHTML = customLayers
+      .map(
+        (layer) => `
+        <div class="custom-layer-card" data-layer-id="${layer.id}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:0.8rem; font-family:'Space Grotesk',sans-serif;">Custom Layer #${layer.id.toString().slice(-4)}</strong>
+            <button type="button" class="btn btn-danger btn-sm btn-remove-layer" data-layer-id="${layer.id}">Remove</button>
+          </div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <input type="text" class="layer-text" data-layer-id="${layer.id}" value="${layer.text}" placeholder="Text content (e.g. Partner: OpenAI)">
+          </div>
+          <div class="form-row">
+            <div>
+              <label style="font-size:0.75rem;">Y Position</label>
+              <input type="number" class="layer-y" data-layer-id="${layer.id}" value="${layer.y}" step="5">
+            </div>
+            <div>
+              <label style="font-size:0.75rem;">Font Size</label>
+              <input type="number" class="layer-size" data-layer-id="${layer.id}" value="${layer.size}" step="1">
+            </div>
+          </div>
+        </div>
+      `
+      )
+      .join('');
+
+    // Attach listeners
+    customLayersContainer.querySelectorAll('.btn-remove-layer').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = Number.parseInt(btn.getAttribute('data-layer-id'), 10);
+        customLayers = customLayers.filter((l) => l.id !== id);
+        renderCustomLayerControls();
+        renderCanvasPreview();
+      });
+    });
+
+    customLayersContainer.querySelectorAll('input').forEach((input) => {
+      input.addEventListener('input', () => {
+        const id = Number.parseInt(input.getAttribute('data-layer-id'), 10);
+        const layer = customLayers.find((l) => l.id === id);
+        if (layer) {
+          if (input.classList.contains('layer-text')) layer.text = input.value;
+          if (input.classList.contains('layer-y')) layer.y = Number.parseInt(input.value || '300', 10);
+          if (input.classList.contains('layer-size')) layer.size = Number.parseInt(input.value || '16', 10);
+          renderCanvasPreview();
+        }
+      });
+    });
+  }
+
   let loadedCustomBgImage = null;
   let customBgDataUrl = null;
 
@@ -154,6 +233,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Variable Replacer Engine
+  function replaceVariables(str, data = {}) {
+    let result = String(str || '');
+    const sampleData = {
+      name: 'Jane Doe',
+      event: 'Full-Stack Web Development Workshop',
+      issuer: 'Nandini Goyal & CertiPulse',
+      date: new Date().toISOString().split('T')[0],
+      grade: 'Distinction',
+      score: '98',
+      track: 'Web Engineering',
+      ...data,
+    };
+
+    Object.keys(sampleData).forEach((key) => {
+      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
+      result = result.replace(regex, sampleData[key]);
+    });
+    return result;
+  }
+
   // Live Canvas Rendering Engine
   function renderCanvasPreview() {
     if (!ctx || !canvas) return;
@@ -164,9 +264,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const preset = templatePresetSelect ? templatePresetSelect.value : 'modern';
     const themeColor = themeColorInput ? themeColorInput.value : '#e05638';
 
-    const eventTitle = eventTitleInput ? eventTitleInput.value : 'Full-Stack Web Development Workshop';
-    const subtitle = subtitleInput ? subtitleInput.value : 'Certificate of Completion';
-    const issuerName = issuerNameInput ? issuerNameInput.value : 'Nandini Goyal';
+    const rawEventTitle = eventTitleInput ? eventTitleInput.value : 'Full-Stack Web Development Workshop';
+    const rawSubtitle = subtitleInput ? subtitleInput.value : 'Certificate of Completion';
+    const rawIssuerName = issuerNameInput ? issuerNameInput.value : 'Nandini Goyal';
+
+    const eventTitle = replaceVariables(rawEventTitle);
+    const subtitle = replaceVariables(rawSubtitle);
+    const issuerName = replaceVariables(rawIssuerName);
 
     const nameY = Number.parseInt(nameYInput?.value || '200', 10);
     const nameSize = Number.parseInt(nameSizeInput?.value || '34', 10);
@@ -175,6 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const qrX = Number.parseInt(qrXInput?.value || '660', 10);
     const qrY = Number.parseInt(qrYInput?.value || '400', 10);
+
+    const showBadge = showBadgeCheck ? showBadgeCheck.checked : true;
+    const showSubtitle = showSubtitleCheck ? showSubtitleCheck.checked : true;
+    const showName = showNameCheck ? showNameCheck.checked : true;
+    const showEvent = showEventCheck ? showEventCheck.checked : true;
+    const showFooter = showFooterCheck ? showFooterCheck.checked : true;
+    const showQr = showQrCheck ? showQrCheck.checked : true;
 
     ctx.clearRect(0, 0, width, height);
 
@@ -230,52 +341,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Header Badge & Subtitle Text
       ctx.textAlign = 'center';
-      ctx.fillStyle = themeColor;
-      ctx.font = 'bold 14px "Space Grotesk", sans-serif';
-      ctx.fillText('OFFICIAL CREDENTIAL', width / 2, 70);
+      if (showBadge) {
+        ctx.fillStyle = themeColor;
+        ctx.font = 'bold 14px "Space Grotesk", sans-serif';
+        ctx.fillText('OFFICIAL CREDENTIAL', width / 2, 70);
+      }
 
-      ctx.fillStyle = preset === 'tech' ? '#f8fafc' : '#1a1d20';
-      ctx.font = '700 26px "Space Grotesk", sans-serif';
-      ctx.fillText(subtitle, width / 2, 105);
+      if (showSubtitle) {
+        ctx.fillStyle = preset === 'tech' ? '#f8fafc' : '#1a1d20';
+        ctx.font = '700 26px "Space Grotesk", sans-serif';
+        ctx.fillText(subtitle, width / 2, 105);
 
-      // Line
-      ctx.beginPath();
-      ctx.moveTo(width / 2 - 100, 130);
-      ctx.lineTo(width / 2 + 100, 130);
-      ctx.strokeStyle = themeColor;
-      ctx.lineWidth = 3;
-      ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(width / 2 - 100, 130);
+        ctx.lineTo(width / 2 + 100, 130);
+        ctx.strokeStyle = themeColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
 
-      ctx.fillStyle = preset === 'tech' ? '#94a3b8' : '#5a6065';
-      ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.fillText('THIS IS PROUDLY PRESENTED TO', width / 2, 160);
+        ctx.fillStyle = preset === 'tech' ? '#94a3b8' : '#5a6065';
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.fillText('THIS IS PROUDLY PRESENTED TO', width / 2, 160);
+      }
     }
 
     // Recipient Name
-    const fontColor = preset === 'tech' && !loadedCustomBgImage ? '#ffffff' : '#1a1d20';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = fontColor;
-    ctx.font = `700 ${nameSize}px "Space Grotesk", sans-serif`;
-    ctx.fillText('Jane Doe (Sample)', width / 2, nameY);
+    if (showName) {
+      const fontColor = preset === 'tech' && !loadedCustomBgImage ? '#ffffff' : '#1a1d20';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = fontColor;
+      ctx.font = `700 ${nameSize}px "Space Grotesk", sans-serif`;
+      ctx.fillText('Jane Doe (Sample)', width / 2, nameY);
 
-    if (!loadedCustomBgImage) {
-      ctx.fillStyle = preset === 'tech' ? '#cbd5e1' : '#5a6065';
-      ctx.font = '13px Inter, sans-serif';
-      ctx.fillText('for successfully participating in and completing', width / 2, eventY - 26);
+      if (!loadedCustomBgImage && showSubtitle) {
+        ctx.fillStyle = preset === 'tech' ? '#cbd5e1' : '#5a6065';
+        ctx.font = '13px Inter, sans-serif';
+        ctx.fillText('for successfully participating in and completing', width / 2, eventY - 26);
+      }
     }
 
     // Event Title
-    ctx.fillStyle = themeColor;
-    ctx.font = `700 ${eventSize}px "Space Grotesk", sans-serif`;
-    ctx.fillText(eventTitle, width / 2, eventY);
+    if (showEvent) {
+      ctx.fillStyle = themeColor;
+      ctx.font = `700 ${eventSize}px "Space Grotesk", sans-serif`;
+      ctx.fillText(eventTitle, width / 2, eventY);
+    }
+
+    // Render Custom Text Layers
+    customLayers.forEach((layer) => {
+      if (!layer.text) return;
+      const textToRender = replaceVariables(layer.text);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = layer.color || '#5a6065';
+      ctx.font = `600 ${layer.size || 16}px "Space Grotesk", sans-serif`;
+      ctx.fillText(textToRender, width / 2, layer.y || 340);
+    });
 
     // Footer Info
-    if (!loadedCustomBgImage) {
+    if (showFooter && !loadedCustomBgImage) {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#5a6065';
       ctx.font = 'bold 10px Inter, sans-serif';
       ctx.fillText('ISSUE DATE', 90, 420);
-      ctx.fillStyle = fontColor;
+      ctx.fillStyle = '#1a1d20';
       ctx.font = '11px Inter, sans-serif';
       ctx.fillText(new Date().toISOString().split('T')[0], 90, 436);
 
@@ -287,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.fillText('CERT-DEMO1234', 90, 474);
 
       ctx.textAlign = 'center';
-      ctx.fillStyle = fontColor;
+      ctx.fillStyle = '#1a1d20';
       ctx.font = '700 14px "Space Grotesk", sans-serif';
       ctx.fillText(issuerName, width / 2, 460);
       ctx.fillStyle = '#5a6065';
@@ -296,21 +424,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // QR Code Placeholder
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(qrX, qrY, 80, 80);
-    ctx.strokeStyle = '#1a1d20';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(qrX, qrY, 80, 80);
+    if (showQr) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(qrX, qrY, 80, 80);
+      ctx.strokeStyle = '#1a1d20';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(qrX, qrY, 80, 80);
 
-    ctx.fillStyle = '#1a1d20';
-    ctx.fillRect(qrX + 10, qrY + 10, 20, 20);
-    ctx.fillRect(qrX + 50, qrY + 10, 20, 20);
-    ctx.fillRect(qrX + 10, qrY + 50, 20, 20);
+      ctx.fillStyle = '#1a1d20';
+      ctx.fillRect(qrX + 10, qrY + 10, 20, 20);
+      ctx.fillRect(qrX + 50, qrY + 10, 20, 20);
+      ctx.fillRect(qrX + 10, qrY + 50, 20, 20);
 
-    ctx.fillStyle = '#5a6065';
-    ctx.font = '9px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Scan to Verify', qrX + 40, qrY + 94);
+      ctx.fillStyle = '#5a6065';
+      ctx.font = '9px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Scan to Verify', qrX + 40, qrY + 94);
+    }
   }
 
   // Attach Input Listeners for Live Updates
@@ -326,6 +456,12 @@ document.addEventListener('DOMContentLoaded', () => {
     eventSizeInput,
     qrXInput,
     qrYInput,
+    showBadgeCheck,
+    showSubtitleCheck,
+    showNameCheck,
+    showEventCheck,
+    showFooterCheck,
+    showQrCheck,
   ].forEach((input) => {
     input?.addEventListener('input', renderCanvasPreview);
     input?.addEventListener('change', renderCanvasPreview);
@@ -374,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-generate-preview')?.addEventListener('click', () => {
     renderCanvasPreview();
-    showToast('Canvas preview updated!', 'success');
+    showToast('Canvas preview refreshed!', 'success');
   });
 
   // Batch Upload Form Handler
