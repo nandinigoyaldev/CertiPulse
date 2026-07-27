@@ -1,0 +1,35 @@
+{
+  "CERT-LUEFBCDS": {
+    "certId": "CERT-LUEFBCDS",
+    "recipientName": "Alice Smith",
+    "recipientEmail": "alice@example.com",
+    "eventTitle": "Web Automation Masterclass 2026",
+    "issueDate": "2026-07-27",
+    "issuerName": "Nandini Goyal",
+    "issuedAt": "2026-07-27T12:22:47.347Z",
+    "status": "VERIFIED",
+    "extraData": {}
+  },
+  "CERT-ZVDCDK4A": {
+    "certId": "CERT-ZVDCDK4A",
+    "recipientName": "Bob Johnson",
+    "recipientEmail": "bob@example.com",
+    "eventTitle": "Web Automation Masterclass 2026",
+    "issueDate": "2026-07-27",
+    "issuerName": "Nandini Goyal",
+    "issuedAt": "2026-07-27T12:22:49.122Z",
+    "status": "VERIFIED",
+    "extraData": {}
+  },
+  "CERT-22R7WAWE": {
+    "certId": "CERT-22R7WAWE",
+    "recipientName": "Carol Williams",
+    "recipientEmail": "carol@example.com",
+    "eventTitle": "Web Automation Masterclass 2026",
+    "issueDate": "2026-07-27",
+    "issuerName": "Nandini Goyal",
+    "issuedAt": "2026-07-27T12:22:50.715Z",
+    "status": "VERIFIED",
+    "extraData": {}
+  }
+}

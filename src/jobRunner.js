@@ -1,158 +1,142 @@
-const config = require('./config');
+const { generateCertificateBuffer } = require('./certificateGenerator');
+const { createEmailTransporter, sendCertificateEmail } = require('./email');
 const { updateSheetStatus } = require('./sheets');
-const { formatTimestamp, randomDelay, sanitizeCellValue, validatePhone } = require('./utils');
-const { sendWhatsAppMessage } = require('./whatsapp');
+const { registerCertificate } = require('./verificationStore');
+const config = require('./config');
 
-function buildWorkshopMessage(name, groupLink) {
-  return `Hi ${sanitizeCellValue(name) || 'there'} 👋\n\nThanks for registering for our workshop.\n\nJoin the official WhatsApp group here:\n${groupLink || config.groupLink}\n\nPlease join before the session starts.`;
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const clean = email.trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(clean);
 }
 
-function normalizePhoneKey(phone) {
-  const validation = validatePhone(phone);
-  return validation.isValid ? validation.digits : null;
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isPriorityRow(row) {
-  const normalizedName = sanitizeCellValue(row.name).toLowerCase();
-  const normalizedEmail = sanitizeCellValue(row.email).toLowerCase();
-  const normalizedPhone = normalizePhoneKey(row.phone);
+async function processJobRows(rows, options = {}) {
+  const {
+    log = console.log,
+    smtpConfig = {},
+    certificateOptions = {},
+    emailTemplateOptions = {},
+    appBaseUrl = config.appBaseUrl,
+  } = options;
 
-  return (
-    normalizedName === config.priorityName
-    || normalizedEmail === config.priorityEmail
-    || normalizedPhone === config.priorityPhone
-  );
-}
-
-function prioritizeRows(rows) {
-  const priorityRows = [];
-  const remainingRows = [];
-
-  for (const row of rows) {
-    if (isPriorityRow(row)) {
-      priorityRows.push(row);
-      continue;
-    }
-
-    remainingRows.push(row);
-  }
-
-  return [...priorityRows, ...remainingRows];
-}
-
-async function processRow(client, row, log, options = {}) {
-  const groupLink = options.groupLink || config.groupLink;
-  const phoneCheck = validatePhone(row.phone);
-
-  if (!phoneCheck.isValid) {
-    log('WARN', `Skipping row ${row.rowNumber} in ${row.sourcePath}: invalid phone number for ${row.name}`, row.phone);
-    await updateSheetStatus(row.sourcePath, row.rowNumber, 'FAILED', formatTimestamp());
-    return { skipped: true, reason: 'invalid-phone', recipient: row };
-  }
-
-  const message = buildWorkshopMessage(row.name, groupLink);
-  log('INFO', `Sending message to ${row.name} (${phoneCheck.digits}) from ${row.sourcePath}`);
-
-  try {
-    await sendWhatsAppMessage(client, row.phone, message, {
-      retryCount: config.messageRetryCount,
-      retryDelayMs: config.messageRetryDelayMs,
-    });
-
-    await updateSheetStatus(row.sourcePath, row.rowNumber, 'SENT', formatTimestamp());
-    log('INFO', `Message sent successfully to ${row.name} from ${row.sourcePath}`);
-    return { skipped: false, success: true, recipient: row };
-  } catch (error) {
-    await updateSheetStatus(row.sourcePath, row.rowNumber, 'FAILED', formatTimestamp());
-    log('ERROR', `Failed to send message to ${row.name} from ${row.sourcePath}`, error.message || error);
-    return { skipped: false, success: false, error: error.message || String(error), recipient: row };
-  }
-}
-
-async function markDuplicateRow(row, log) {
-  log('WARN', `Skipping duplicate phone number at row ${row.rowNumber} in ${row.sourcePath}: ${row.phone}`);
-  await updateSheetStatus(row.sourcePath, row.rowNumber, 'SKIPPED_DUPLICATE', formatTimestamp());
-}
-
-async function processRows(client, rows, options = {}) {
-  const log = options.log || ((level, message, details) => console.log(`[${level}] ${message}`, details));
-  const orderedRows = prioritizeRows(rows);
-  const seenPhones = new Set();
-  const groupLink = options.groupLink || config.groupLink;
+  const transporter = createEmailTransporter(smtpConfig);
+  const seenEmails = new Set();
 
   const summary = {
-    failed: 0,
-    invalidPhone: 0,
-    processed: 0,
-    recipientsNotSent: [],
-    skippedDuplicate: 0,
-    total: orderedRows.length,
+    total: rows.length,
     sent: 0,
+    failed: 0,
+    skippedDuplicate: 0,
+    invalidEmail: 0,
+    recipientsNotSent: [],
   };
 
-  function addNotSent(row, reason, details) {
-    summary.recipientsNotSent.push({
-      details: details || '',
-      email: row.email || '',
-      name: row.name || '',
-      phone: row.phone || '',
-      reason,
-      rowNumber: row.rowNumber,
-      sourcePath: row.sourcePath,
-    });
-  }
+  log('INFO', `Starting job execution for ${rows.length} rows`);
 
-  for (const row of orderedRows) {
-    if (options.shouldStop && options.shouldStop()) {
-      throw new Error('Processing stopped by request.');
-    }
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rawEmail = (row.email || '').trim().toLowerCase();
+    const recipientName = (row.name || 'Participant').trim();
 
-    const normalizedPhone = normalizePhoneKey(row.phone);
-
-    if (!normalizedPhone) {
-      const result = await processRow(client, row, log, { groupLink });
-      summary.processed += 1;
-      if (result.reason === 'invalid-phone') {
-        summary.invalidPhone += 1;
-        addNotSent(row, 'invalid-phone', 'Phone number did not match a valid Indian mobile format.');
-      } else if (result.success) {
-        summary.sent += 1;
-      } else {
-        summary.failed += 1;
-        addNotSent(row, 'failed', result.error || 'Message send failed.');
-      }
+    if (!isValidEmail(rawEmail)) {
+      summary.invalidEmail++;
+      summary.failed++;
+      summary.recipientsNotSent.push({
+        name: recipientName,
+        email: rawEmail,
+        reason: 'Invalid email address format',
+      });
+      await updateSheetStatus(row.sourcePath, row.rowNumber, 'FAILED_INVALID_EMAIL');
       continue;
     }
 
-    if (seenPhones.has(normalizedPhone)) {
-      await markDuplicateRow(row, log);
-      summary.skippedDuplicate += 1;
-      addNotSent(row, 'duplicate', 'Duplicate phone number in this run.');
+    if (seenEmails.has(rawEmail)) {
+      summary.skippedDuplicate++;
+      summary.recipientsNotSent.push({
+        name: recipientName,
+        email: rawEmail,
+        reason: 'Duplicate email address in upload batch',
+      });
+      await updateSheetStatus(row.sourcePath, row.rowNumber, 'SKIPPED_DUPLICATE');
       continue;
     }
 
-    seenPhones.add(normalizedPhone);
+    seenEmails.add(rawEmail);
 
-    const result = await processRow(client, row, log, { groupLink });
-    summary.processed += 1;
+    try {
+      // 1. Register certificate record in verification store
+      const certRecord = registerCertificate({
+        recipientName,
+        recipientEmail: rawEmail,
+        eventTitle: certificateOptions.eventTitle || 'Workshop & Event Automation',
+        issueDate: certificateOptions.issueDate || new Date().toISOString().split('T')[0],
+        issuerName: certificateOptions.issuerName || 'CertiPulse Organizer',
+      });
 
-    if (result.reason === 'invalid-phone') {
-      summary.invalidPhone += 1;
-      addNotSent(row, 'invalid-phone', 'Phone number did not match a valid Indian mobile format.');
-    } else if (result.success) {
-      summary.sent += 1;
-    } else {
-      summary.failed += 1;
-      addNotSent(row, 'failed', result.error || 'Message send failed.');
+      const verificationUrl = `${appBaseUrl.replace(/\/$/, '')}/verify/${certRecord.certId}`;
+
+      // 2. Generate PDF Certificate
+      const pdfBuffer = await generateCertificateBuffer({
+        recipientName,
+        eventTitle: certificateOptions.eventTitle || 'Workshop & Event Automation',
+        certificateSubtitle: certificateOptions.certificateSubtitle || 'Certificate of Completion',
+        issueDate: certRecord.issueDate,
+        issuerName: certRecord.issuerName,
+        certId: certRecord.certId,
+        verificationUrl,
+        themeColor: certificateOptions.themeColor || '#0f766e',
+      });
+
+      // 3. Send Email with PDF Attachment
+      await sendCertificateEmail(transporter, {
+        fromEmail: smtpConfig.fromEmail || config.fromEmail,
+        fromName: smtpConfig.fromName || config.fromName,
+        toEmail: rawEmail,
+        toName: recipientName,
+        subjectTemplate: emailTemplateOptions.subject || 'Your Certificate of Completion for {{event}}',
+        bodyTemplate: emailTemplateOptions.bodyHtml || null,
+        pdfBuffer,
+        certId: certRecord.certId,
+        eventTitle: certificateOptions.eventTitle || 'Workshop & Event Automation',
+        verificationUrl,
+      });
+
+      summary.sent++;
+      log('INFO', `[${i + 1}/${rows.length}] Certificate sent successfully to ${recipientName} (${rawEmail}) [ID: ${certRecord.certId}]`);
+
+      await updateSheetStatus(row.sourcePath, row.rowNumber, 'SENT', certRecord.certId);
+    } catch (err) {
+      summary.failed++;
+      const errorMessage = err.message || String(err);
+      log('ERROR', `Failed to process row ${row.rowNumber} (${rawEmail}): ${errorMessage}`);
+
+      summary.recipientsNotSent.push({
+        name: recipientName,
+        email: rawEmail,
+        reason: 'Email dispatch error',
+        details: errorMessage,
+      });
+
+      await updateSheetStatus(row.sourcePath, row.rowNumber, 'FAILED');
     }
 
-    log('INFO', `Waiting before the next message for ${row.name}`);
-    await randomDelay(config.minDelayMs, config.maxDelayMs);
+    // Delay between email sends to adhere to rate limits and prevent spam blocks
+    if (i < rows.length - 1) {
+      const delayMs = Math.floor(Math.random() * (config.maxDelayMs - config.minDelayMs + 1)) + config.minDelayMs;
+      await delay(delayMs);
+    }
   }
 
+  log('INFO', 'Job execution finished', summary);
   return summary;
 }
 
 module.exports = {
-  processRows,
+  processJobRows,
+  isValidEmail,
 };

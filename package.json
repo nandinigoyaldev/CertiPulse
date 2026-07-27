@@ -1,22 +1,28 @@
 {
-  "name": "workshop-registration-whatsapp-bot",
+  "name": "certipulse",
   "version": "1.0.0",
-  "description": "Production-ready WhatsApp automation bot for workshop registrations using a local Excel workbook.",
-  "main": "src/index.js",
+  "description": "Production-ready Web Platform for Dynamic Certificate Generation, QR Verification & Automated Email Delivery",
+  "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
-    "bot": "node src/index.js"
+    "dev": "node src/server.js"
   },
   "engines": {
     "node": ">=18"
   },
   "license": "MIT",
   "dependencies": {
-    "express": "^4.21.2",
+    "adm-zip": "^0.5.16",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
     "multer": "^2.1.1",
+    "nodemailer": "^6.10.0",
+    "pdfkit": "^0.16.0",
+    "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.28.0"
   }

@@ -1,12 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
-const multer = require('multer');
 const path = require('path');
+const multer = require('multer');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const config = require('./config');
-const { createWhatsAppClient, waitForClientReady } = require('./whatsapp');
-const { processRows } = require('./jobRunner');
+const { generateCertificateBuffer } = require('./certificateGenerator');
+const { processJobRows } = require('./jobRunner');
 const { readRowsFromWorkbookPath } = require('./sheets');
+const { getCertificate } = require('./verificationStore');
 
 const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const UPLOAD_ROOT = path.resolve(process.cwd(), 'uploads');
@@ -15,21 +19,34 @@ const UPLOAD_DIR = path.join(UPLOAD_ROOT, 'incoming');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const app = express();
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-const { client, runtimeState } = createWhatsAppClient();
-const readyPromise = waitForClientReady(client);
+
+// Security Middleware: Helmet & Rate Limiter
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Allowed for embedded inline styles & fonts in local dashboard
+  })
+);
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // limit each IP to 300 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+app.use('/api/', apiLimiter);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 let queue = Promise.resolve();
 const jobs = new Map();
 
 function log(level, message, details) {
   const prefix = `[${new Date().toISOString()}] [${level}]`;
-
   if (details !== undefined) {
     console.log(prefix, message, details);
     return;
   }
-
   console.log(prefix, message);
 }
 
@@ -39,156 +56,6 @@ function sanitizeFilename(value) {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 80) || 'upload';
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function isAuthorized(req) {
-  const header = String(req.get('authorization') || req.get('x-admin-token') || req.query.admin_token || '');
-  if (!header) return false;
-  if (header.toLowerCase().startsWith('bearer ')) return header.slice(7).trim() === ADMIN_TOKEN;
-  return header.trim() === ADMIN_TOKEN;
-}
-
-function renderJob(job) {
-  const notSent = job.summary?.recipientsNotSent || [];
-  const notSentHtml = notSent.length
-    ? `
-      <div class="unsent">
-        <div class="unsent-title">Didn’t send to ${notSent.length} people</div>
-        <ul>${notSent.slice(0, 12).map((entry) => `
-          <li>
-            <strong>${escapeHtml(entry.name || entry.phone || 'Unknown')}</strong>
-            <span>${escapeHtml(entry.reason)}</span>
-            <small>${escapeHtml(entry.phone || '')}${entry.details ? ` · ${escapeHtml(entry.details)}` : ''}</small>
-          </li>
-        `).join('')}</ul>
-      </div>
-    `
-    : '';
-
-  const summary = job.summary
-    ? `<div class="summary">Sent ${job.summary.sent} | Failed ${job.summary.failed} | Invalid ${job.summary.invalidPhone} | Duplicates ${job.summary.skippedDuplicate} | Unsent ${notSent.length}</div>`
-    : '';
-
-  return `
-    <article class="job ${job.status}">
-      <div class="job-top">
-        <div>
-          <h3>${escapeHtml(job.originalName)}</h3>
-          <p>${escapeHtml(job.status)}</p>
-        </div>
-        <span>${job.rowsProcessed ?? 0} rows</span>
-      </div>
-      <div class="meta">${escapeHtml(job.filePath)}</div>
-      ${summary}
-      ${notSentHtml}
-      ${job.error ? `<div class="error">${escapeHtml(job.error)}</div>` : ''}
-    </article>
-  `;
-}
-
-function renderPage() {
-  const jobsHtml = Array.from(jobs.values())
-    .sort((left, right) => right.createdAt - left.createdAt)
-    .slice(0, 8)
-    .map(renderJob)
-    .join('') || '<div class="empty">No uploads yet. Drop a spreadsheet to start.</div>';
-
-  return `<!doctype html>
-  <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Workshop Invite Bot</title>
-    <style>
-      :root { color-scheme: light; --bg: #f4efe7; --panel: rgba(255,255,255,.78); --ink: #171717; --muted: #5e5a52; --accent: #0f766e; --accent-2: #b45309; --line: rgba(23,23,23,.09); }
-      * { box-sizing: border-box; }
-      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: radial-gradient(circle at top left, #fff8e6 0, transparent 32%), radial-gradient(circle at top right, #d7f3ef 0, transparent 24%), linear-gradient(180deg, #f8f4ec 0%, #f4efe7 100%); color: var(--ink); }
-      .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 56px; }
-      .hero { display: grid; gap: 18px; grid-template-columns: 1.45fr .95fr; align-items: end; margin-bottom: 26px; }
-      .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .16em; color: var(--accent); font-weight: 700; }
-      h1 { margin: 10px 0 12px; font-size: clamp(2.4rem, 5vw, 4.8rem); line-height: .94; letter-spacing: -.05em; }
-      .lede { margin: 0; font-size: 1.05rem; line-height: 1.6; max-width: 58ch; color: var(--muted); }
-      .panel { background: var(--panel); backdrop-filter: blur(18px); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 30px 70px rgba(23,23,23,.08); }
-      .upload { padding: 20px; display: grid; gap: 14px; }
-      .upload label { font-weight: 700; }
-      .upload input[type=file] { width: 100%; padding: 14px; border: 1px dashed rgba(23,23,23,.22); border-radius: 16px; background: rgba(255,255,255,.66); }
-      .upload button { border: 0; border-radius: 999px; padding: 14px 20px; background: linear-gradient(135deg, var(--accent), #14532d); color: white; font-weight: 700; cursor: pointer; }
-      .upload small { color: var(--muted); line-height: 1.5; }
-      .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0 28px; }
-      .stat { padding: 16px; }
-      .stat .value { font-size: 1.7rem; font-weight: 800; margin-top: 4px; }
-      .stat .label { color: var(--muted); font-size: .9rem; }
-      .section-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 28px 2px 14px; }
-      .jobs { display: grid; gap: 12px; }
-      .job { padding: 18px; }
-      .job h3 { margin: 0 0 4px; font-size: 1rem; }
-      .job p, .meta { margin: 0; color: var(--muted); }
-      .job-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
-      .summary, .error { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.7); border: 1px solid var(--line); font-size: .92rem; }
-      .error { color: #9a3412; }
-      .unsent { margin-top: 10px; padding: 12px; border-radius: 14px; border: 1px solid rgba(185,28,28,.12); background: rgba(254,242,242,.8); }
-      .unsent-title { font-weight: 700; margin-bottom: 10px; color: #991b1b; }
-      .unsent ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
-      .unsent li { display: grid; gap: 2px; }
-      .unsent span, .unsent small { color: var(--muted); }
-      .empty { padding: 24px; color: var(--muted); }
-      .processing { outline: 2px solid rgba(15,118,110,.25); }
-      .done { }
-      .failed { outline: 2px solid rgba(185,28,28,.2); }
-      @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .status-grid { grid-template-columns: 1fr; } }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <section class="hero">
-        <div>
-          <div class="eyebrow">Workshop Invite Bot</div>
-          <h1>Upload a spreadsheet and let the bot send the WhatsApp invite.</h1>
-          <p class="lede">Drop an Excel or CSV file, and the backend will read every valid mobile number, send the group invite message, and update the sheet with delivery status.</p>
-        </div>
-        <div class="panel upload">
-          <form action="/upload" method="post" enctype="multipart/form-data">
-            <label for="workbook">Upload workbook</label>
-            <input id="workbook" name="workbook" type="file" accept=".xlsx,.xlsm,.csv" required />
-            <label for="groupLink">WhatsApp group invite link</label>
-            <input id="groupLink" name="groupLink" type="url" placeholder="https://chat.whatsapp.com/..." />
-            <button type="submit">Upload and process</button>
-          </form>
-          <small>Leave the group link empty to use the default in `.env`. WhatsApp must stay logged in on this machine. If the session is new, scan the QR once in the terminal and uploads will keep working after that.</small>
-        </div>
-      </section>
-
-      <section class="status-grid">
-        <div class="panel stat"><div class="label">WhatsApp</div><div class="value">${runtimeState.connected ? 'Ready' : 'Starting'}</div></div>
-        <div class="panel stat"><div class="label">Queued jobs</div><div class="value">${Array.from(jobs.values()).filter((job) => job.status === 'queued' || job.status === 'processing').length}</div></div>
-        <div class="panel stat"><div class="label">Processed uploads</div><div class="value">${jobs.size}</div></div>
-      </section>
-
-      <div class="section-title">
-        <h2 style="margin:0">Recent uploads</h2>
-        <span style="color:var(--muted)">Processing happens automatically after upload</span>
-      </div>
-      <section class="jobs">${jobsHtml}</section>
-      <footer style="margin-top:28px; text-align:center; color:var(--muted); font-size:0.95rem;">
-        <div style="margin-top:18px;">Made with ❤️ — connect:</div>
-        <div style="display:flex; gap:12px; justify-content:center; margin-top:8px;">
-          <a href="https://instagram.com/self_taught_bob" target="_blank" rel="noreferrer">Instagram</a>
-          <a href="https://github.com/goyaljiiiiii" target="_blank" rel="noreferrer">GitHub</a>
-          <a href="https://www.youtube.com/@self_taught_bob" target="_blank" rel="noreferrer">YouTube</a>
-        </div>
-      </footer>
-    </div>
-  </body>
-  </html>`;
 }
 
 function enqueue(task) {
@@ -215,56 +82,157 @@ const upload = multer({
       callback(null, true);
       return;
     }
-
-    callback(new Error('Only .xlsx, .xlsm, or .csv files are supported.'));
+    callback(new Error('Only .xlsx, .xlsm, or .csv spreadsheet files are supported.'));
   },
   limits: { fileSize: 25 * 1024 * 1024 },
   storage,
 });
 
-app.get('/', (req, res) => {
-  if (ADMIN_TOKEN && !isAuthorized(req)) {
-    res.set('WWW-Authenticate', 'Bearer realm="Upload UI"');
-    res.status(401).send('Unauthorized');
-    return;
-  }
-
-  res.type('html').send(renderPage());
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ ok: true, app: 'CertiPulse', timestamp: new Date().toISOString() });
 });
 
-app.get('/jobs', (req, res) => {
-  if (ADMIN_TOKEN && !isAuthorized(req)) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
+// Serve Main UI
+app.get('/', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
+});
 
+// Generate PDF Certificate Preview Endpoint
+app.post('/api/preview-certificate', async (req, res) => {
+  try {
+    const { recipientName, eventTitle, certificateSubtitle, issuerName, issueDate, themeColor } = req.body || {};
+
+    const pdfBuffer = await generateCertificateBuffer({
+      recipientName: recipientName || 'Jane Doe',
+      eventTitle: eventTitle || 'Full-Stack Web Development Workshop',
+      certificateSubtitle: certificateSubtitle || 'Certificate of Completion',
+      issuerName: issuerName || 'CertiPulse Academy',
+      issueDate: issueDate || new Date().toISOString().split('T')[0],
+      certId: 'CERT-PREVIEW88',
+      verificationUrl: `${config.appBaseUrl}/verify/CERT-PREVIEW88`,
+      themeColor: themeColor || '#0f766e',
+    });
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="Certificate_Preview.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+  } catch (err) {
+    log('ERROR', 'Failed to generate preview certificate', err.message || err);
+    res.status(500).json({ error: 'Failed to generate preview certificate: ' + (err.message || String(err)) });
+  }
+});
+
+// Get Upload Jobs
+app.get('/jobs', (req, res) => {
   res.json(Array.from(jobs.values()).sort((left, right) => right.createdAt - left.createdAt));
 });
 
-app.get('/health', (req, res) => {
-  res.json({ ok: true, connected: !!runtimeState.connected });
+// Verification API
+app.get('/api/verify/:certId', (req, res) => {
+  const certId = req.params.certId;
+  const cert = getCertificate(certId);
+  if (!cert) {
+    return res.status(404).json({ valid: false, message: 'Certificate not found' });
+  }
+  res.json({ valid: true, certificate: cert });
 });
 
-app.post('/upload', upload.single('workbook'), (req, res, next) => {
-  if (ADMIN_TOKEN && !isAuthorized(req)) {
-    res.status(401).send('Unauthorized');
-    return;
-  }
+// Public Verification Page Route
+app.get('/verify/:certId', (req, res) => {
+  const certId = req.params.certId;
+  const cert = getCertificate(certId);
 
+  const statusText = cert ? 'Authentic Credential' : 'Invalid or Unverified Credential';
+  const recipientName = cert ? cert.recipientName : 'Unknown';
+  const eventTitle = cert ? cert.eventTitle : 'Unknown Event';
+  const issueDate = cert ? cert.issueDate : 'N/A';
+  const issuerName = cert ? cert.issuerName : 'N/A';
+
+  const html = `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verification — ${certId}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Plus Jakarta Sans', sans-serif; background: #090d16; color: #f8fafc; margin: 0; padding: 40px 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+      .card { background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 36px; max-width: 540px; width: 100%; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+      .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; margin-bottom: 20px; ${cert ? 'background: rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);' : 'background: rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3);'} }
+      h1 { margin: 0 0 8px 0; font-size: 1.6rem; }
+      p { color: #94a3b8; margin: 0 0 24px 0; font-size: 0.95rem; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: rgba(2,6,23,0.5); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
+      .item label { font-size: 0.78rem; color: #94a3b8; display: block; }
+      .item span { font-size: 1rem; font-weight: 700; color: #fff; }
+      .footer { margin-top: 24px; text-align: center; font-size: 0.8rem; color: #64748b; }
+      .btn { display: inline-block; margin-top: 20px; width: 100%; padding: 12px; background: #0f766e; color: white; text-align: center; text-decoration: none; font-weight: 700; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">${statusText}</div>
+      <h1>${cert ? 'Verified Certificate' : 'Unverified Certificate'}</h1>
+      <p>Official record issued by CertiPulse Credential Platform.</p>
+
+      <div class="grid">
+        <div class="item"><label>Certificate ID</label><span>${certId}</span></div>
+        <div class="item"><label>Recipient</label><span>${recipientName}</span></div>
+        <div class="item"><label>Workshop / Event</label><span>${eventTitle}</span></div>
+        <div class="item"><label>Issue Date</label><span>${issueDate}</span></div>
+        <div class="item"><label>Issuer</label><span>${issuerName}</span></div>
+        <div class="item"><label>Verification Status</label><span style="color:${cert ? '#10b981' : '#ef4444'}">${cert ? 'VERIFIED' : 'INVALID'}</span></div>
+      </div>
+
+      <a href="/" class="btn">Return to CertiPulse Platform</a>
+      <div class="footer">CertiPulse · Tamper-proof Event Credential Verification</div>
+    </div>
+  </body>
+  </html>`;
+
+  res.type('html').send(html);
+});
+
+// Process Batch Upload & Email Dispatch Endpoint
+app.post('/upload', upload.single('workbook'), async (req, res) => {
   if (!req.file) {
-    res.status(400).send('No workbook uploaded.');
+    res.status(400).send('No spreadsheet file uploaded.');
     return;
   }
 
   const jobId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+  const smtpConfig = {
+    host: String(req.body.smtpHost || '').trim(),
+    port: Number.parseInt(req.body.smtpPort || '', 10) || undefined,
+    user: String(req.body.smtpUser || '').trim(),
+    pass: String(req.body.smtpPass || '').trim(),
+  };
+
+  const certificateOptions = {
+    eventTitle: String(req.body.eventTitle || '').trim(),
+    certificateSubtitle: String(req.body.certificateSubtitle || '').trim(),
+    issuerName: String(req.body.issuerName || '').trim(),
+    issueDate: String(req.body.issueDate || '').trim(),
+    themeColor: String(req.body.themeColor || '').trim(),
+  };
+
+  const emailTemplateOptions = {
+    subject: String(req.body.emailSubject || '').trim(),
+    bodyHtml: String(req.body.emailBody || '').trim(),
+  };
+
   const job = {
+    id: jobId,
     createdAt: Date.now(),
     filePath: req.file.path,
-    id: jobId,
     originalName: req.file.originalname,
     rowsProcessed: 0,
+    totalRows: 0,
     status: 'queued',
-    groupLink: String(req.body.groupLink || '').trim() || config.groupLink,
   };
 
   jobs.set(jobId, job);
@@ -272,12 +240,15 @@ app.post('/upload', upload.single('workbook'), (req, res, next) => {
   enqueue(async () => {
     job.status = 'processing';
     try {
-      await readyPromise;
       const rows = await readRowsFromWorkbookPath(job.filePath);
-      const summary = await processRows(client, rows, {
+      job.totalRows = rows.length;
+
+      const summary = await processJobRows(rows, {
         log: (level, message, details) => log(level, `[${job.originalName}] ${message}`, details),
-        groupLink: job.groupLink,
-        shouldStop: () => runtimeState.disconnected,
+        smtpConfig,
+        certificateOptions,
+        emailTemplateOptions,
+        appBaseUrl: config.appBaseUrl,
       });
 
       job.rowsProcessed = summary.total;
@@ -291,29 +262,24 @@ app.post('/upload', upload.single('workbook'), (req, res, next) => {
       job.finishedAt = Date.now();
       log('ERROR', `Upload job failed for ${job.originalName}`, job.error);
     }
-  }).catch((error) => {
-    job.status = 'failed';
-    job.error = error.message || String(error);
-    job.finishedAt = Date.now();
   });
 
-  res.redirect('/');
+  res.status(200).json({ ok: true, jobId, message: 'Spreadsheet uploaded and dispatch queued.' });
 });
 
+// Global error handler
 app.use((error, req, res, next) => {
-  log('ERROR', 'Request failed', error.message || error);
-  res.status(400).send(error.message || 'Upload failed.');
+  log('ERROR', 'Unhandled request error', error.message || error);
+  res.status(400).json({ error: error.message || 'Request failed.' });
 });
 
 async function start() {
   app.listen(PORT, () => {
-    log('INFO', `Web upload bot listening on http://localhost:${PORT}`);
+    log('INFO', `🚀 CertiPulse platform running at http://localhost:${PORT}`);
   });
-
-  await client.initialize();
 }
 
 start().catch((error) => {
-  log('ERROR', 'Failed to start web server', error.message || error);
+  log('ERROR', 'Failed to start server', error.message || error);
   process.exitCode = 1;
 });
