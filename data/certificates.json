@@ -31,5 +31,38 @@
     "issuedAt": "2026-07-27T12:22:50.715Z",
     "status": "VERIFIED",
     "extraData": {}
+  },
+  "CERT-FDQU5LT6": {
+    "certId": "CERT-FDQU5LT6",
+    "recipientName": "Alice Smith",
+    "recipientEmail": "alice@example.com",
+    "eventTitle": "Global Open Source Summit 2026",
+    "issueDate": "2026-07-27",
+    "issuerName": "Nandini Goyal",
+    "issuedAt": "2026-07-27T12:26:21.365Z",
+    "status": "VERIFIED",
+    "extraData": {}
+  },
+  "CERT-7UHY4CTV": {
+    "certId": "CERT-7UHY4CTV",
+    "recipientName": "Bob Johnson",
+    "recipientEmail": "bob@example.com",
+    "eventTitle": "Global Open Source Summit 2026",
+    "issueDate": "2026-07-27",
+    "issuerName": "Nandini Goyal",
+    "issuedAt": "2026-07-27T12:26:23.909Z",
+    "status": "VERIFIED",
+    "extraData": {}
+  },
+  "CERT-CBXVSJUA": {
+    "certId": "CERT-CBXVSJUA",
+    "recipientName": "Carol Williams",
+    "recipientEmail": "carol@example.com",
+    "eventTitle": "Global Open Source Summit 2026",
+    "issueDate": "2026-07-27",
+    "issuerName": "Nandini Goyal",
+    "issuedAt": "2026-07-27T12:26:26.794Z",
+    "status": "VERIFIED",
+    "extraData": {}
   }
 }

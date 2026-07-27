@@ -38,7 +38,7 @@ function generateCertId() {
   return id;
 }
 
-function registerCertificate({ recipientName, recipientEmail, eventTitle, issueDate, issuerName, extraData = {} }) {
+function registerCertificate({ recipientName, recipientEmail, eventTitle, issueDate, expiryDate = null, issuerName, extraData = {} }) {
   let certId = generateCertId();
   while (store[certId]) {
     certId = generateCertId();
@@ -50,9 +50,12 @@ function registerCertificate({ recipientName, recipientEmail, eventTitle, issueD
     recipientEmail: recipientEmail.trim().toLowerCase(),
     eventTitle: eventTitle.trim(),
     issueDate: issueDate || new Date().toISOString().split('T')[0],
+    expiryDate: expiryDate || null,
     issuerName: issuerName ? issuerName.trim() : 'CertiPulse Organizer',
     issuedAt: new Date().toISOString(),
-    status: 'VERIFIED',
+    status: 'VERIFIED', // 'VERIFIED', 'REVOKED', 'EXPIRED'
+    revocationReason: null,
+    viewCount: 0,
     extraData,
   };
 
@@ -61,19 +64,61 @@ function registerCertificate({ recipientName, recipientEmail, eventTitle, issueD
   return record;
 }
 
-function getCertificate(certId) {
+function getCertificate(certId, incrementView = true) {
   if (!certId) return null;
   const cleanId = String(certId).trim().toUpperCase();
-  return store[cleanId] || null;
+  const record = store[cleanId];
+  if (!record) return null;
+
+  if (incrementView) {
+    record.viewCount = (record.viewCount || 0) + 1;
+    saveStore(store);
+  }
+
+  // Check if expired
+  if (record.status === 'VERIFIED' && record.expiryDate) {
+    const exp = new Date(record.expiryDate);
+    if (exp < new Date()) {
+      record.status = 'EXPIRED';
+      saveStore(store);
+    }
+  }
+
+  return record;
 }
 
-function getAllCertificates() {
-  return Object.values(store);
+function revokeCertificate(certId, reason = 'Revoked by organizer') {
+  const cleanId = String(certId).trim().toUpperCase();
+  const record = store[cleanId];
+  if (!record) return null;
+
+  record.status = 'REVOKED';
+  record.revocationReason = reason;
+  record.revokedAt = new Date().toISOString();
+  saveStore(store);
+  return record;
+}
+
+function getAllCertificates(filterQuery = '') {
+  const list = Object.values(store);
+  if (!filterQuery) return list.sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
+
+  const q = filterQuery.toLowerCase();
+  return list
+    .filter(
+      (c) =>
+        c.certId.toLowerCase().includes(q) ||
+        c.recipientName.toLowerCase().includes(q) ||
+        c.recipientEmail.toLowerCase().includes(q) ||
+        c.eventTitle.toLowerCase().includes(q)
+    )
+    .sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
 }
 
 module.exports = {
   registerCertificate,
   getCertificate,
+  revokeCertificate,
   getAllCertificates,
   generateCertId,
 };
