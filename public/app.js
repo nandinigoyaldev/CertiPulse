@@ -556,6 +556,41 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Canvas preview refreshed!', 'success');
   });
 
+  // AI Pre-Flight Roster Inspection Handler
+  const csvFileInput = document.getElementById('workbookFile');
+  const csvFileStatus = document.getElementById('csv-file-status');
+
+  csvFileInput?.addEventListener('change', async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      showToast('Running AI Pre-Flight Roster Inspection...', 'info');
+
+      const formData = new FormData();
+      formData.append('workbook', file);
+
+      try {
+        const res = await fetch('/api/inspect-roster', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (res.ok && data.healthReport && csvFileStatus) {
+          const h = data.healthReport;
+          csvFileStatus.innerHTML = `
+            <div style="font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:700; color:#1a1d20;">
+              🛡️ AI Roster Health: <span style="color:#2d6a4f;">${h.healthScore}% Healthy</span> (${h.validCount}/${h.totalRows} Rows Ready)
+            </div>
+            <div style="margin-top:4px; font-size:0.78rem; color:#5a6065;">
+              ✨ Auto-Proofed: ${h.namesFixed} Names Casing Fixed | ${h.emailTyposFixed} Email Typos Corrected | ${h.phonesFormatted} Phones Formatted
+              ${h.suspiciousRows.length ? `<span style="color:#d90429; font-weight:700;"> | ⚠️ ${h.suspiciousRows.length} Rows Flagged</span>` : ''}
+            </div>`;
+          csvFileStatus.classList.remove('hidden');
+          showToast(`AI Roster Inspection Complete: ${h.healthScore}% Healthy!`, 'success');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  });
+
   // Batch Upload Form Handler
   const uploadForm = document.getElementById('upload-form');
   uploadForm?.addEventListener('submit', async (e) => {

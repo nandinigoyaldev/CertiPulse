@@ -258,6 +258,52 @@ app.get('/api/certificates/:certId/badge.json', (req, res) => {
   res.json(badge);
 });
 
+// Mobile Wallet Pass Metadata Endpoint (Apple Wallet & Google Pay)
+app.get('/api/certificates/:certId/wallet-pass', (req, res) => {
+  const certId = req.params.certId;
+  const cert = getCertificate(certId, false);
+  if (!cert) {
+    return res.status(404).json({ error: 'Certificate not found' });
+  }
+
+  res.json({
+    formatVersion: 1,
+    passTypeIdentifier: 'pass.com.certipulse.credential',
+    serialNumber: cert.certId,
+    organizationName: cert.issuerName || 'CertiPulse Partner',
+    description: `Official Verified Credential for ${cert.eventTitle}`,
+    logoText: 'CertiPulse ⚡ Verified',
+    headerFields: [{ key: 'status', label: 'STATUS', value: cert.status }],
+    primaryFields: [{ key: 'recipient', label: 'RECIPIENT NAME', value: cert.recipientName }],
+    secondaryFields: [
+      { key: 'event', label: 'EVENT PROGRAM', value: cert.eventTitle },
+      { key: 'issueDate', label: 'ISSUED DATE', value: cert.issueDate },
+    ],
+    auxiliaryFields: [{ key: 'certId', label: 'CREDENTIAL ID', value: cert.certId }],
+    barcode: {
+      message: `${config.appBaseUrl}/verify/${cert.certId}`,
+      format: 'PKBarcodeFormatQR',
+      messageEncoding: 'iso-8859-1',
+    },
+  });
+});
+
+// AI Pre-Flight Roster Inspection API
+app.post('/api/inspect-roster', upload.single('workbook'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No spreadsheet file uploaded.' });
+  }
+
+  try {
+    const { inspectRosterHealth } = require('./utils');
+    const rows = await readRowsFromWorkbookPath(req.file.path);
+    const healthReport = inspectRosterHealth(rows);
+    res.json({ ok: true, healthReport });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to inspect roster: ' + err.message });
+  }
+});
+
 // Track Social Share API
 app.post('/api/certificates/:certId/track-share', (req, res) => {
   const platform = req.body?.platform || 'general';

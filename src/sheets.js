@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
-const { formatTimestamp, normalizeHeaderName, sanitizeCellValue } = require('./utils');
+const { formatTimestamp, normalizeHeaderName, sanitizeCellValue, smartFormatName, smartFixEmailTypo } = require('./utils');
 
 const HEADER_ALIASES = {
   email: ['email', 'e-mail', 'mail', 'email address', "candidate's email", 'candidate email', 'participant email', 'student email'],
@@ -115,26 +115,34 @@ async function readRowsFromWorkbookPath(workbookPath) {
       return;
     }
 
-    const email = sanitizeCellValue(row.getCell(headers.email).text || row.getCell(headers.email).value);
-    const name = sanitizeCellValue(row.getCell(headers.name).text || row.getCell(headers.name).value);
+    const rawEmail = sanitizeCellValue(row.getCell(headers.email).text || row.getCell(headers.email).value);
+    const rawName = sanitizeCellValue(row.getCell(headers.name).text || row.getCell(headers.name).value);
     const phone = sanitizeCellValue(row.getCell(headers.phone).text || row.getCell(headers.phone).value);
     const status = sanitizeCellValue(row.getCell(headers.status).text || row.getCell(headers.status).value).toUpperCase();
     const timestamp = sanitizeCellValue(row.getCell(headers.timestamp).text || row.getCell(headers.timestamp).value);
     const certId = sanitizeCellValue(row.getCell(headers.certId).text || row.getCell(headers.certId).value);
 
-    if (!email && !name && !phone && !status) {
+    if (!rawEmail && !rawName && !phone && !status) {
       return;
     }
 
+    const email = smartFixEmailTypo(rawEmail);
+    const name = smartFormatName(rawName || rawEmail.split('@')[0] || 'Participant');
+
     rows.push({
       email,
-      name: name || email.split('@')[0] || 'Participant',
+      name,
       phone,
       certId,
       rowNumber,
       sourcePath: workbookPath,
       status,
       timestamp,
+      missingFields: {
+        name: !rawName,
+        email: !rawEmail,
+        phone: !phone,
+      },
     });
   });
 

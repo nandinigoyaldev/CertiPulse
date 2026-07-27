@@ -55,18 +55,19 @@ async function processJobRows(rows, options = {}) {
       continue;
     }
 
-    if (seenEmails.has(rawEmail)) {
+    const recipientKey = `${recipientName.toLowerCase()}:${rawEmail}`;
+    if (seenEmails.has(recipientKey)) {
       summary.skippedDuplicate++;
       summary.recipientsNotSent.push({
         name: recipientName,
         email: rawEmail,
-        reason: 'Duplicate email address in upload batch',
+        reason: 'Duplicate recipient entry in upload batch',
       });
       await updateSheetStatus(row.sourcePath, row.rowNumber, 'SKIPPED_DUPLICATE');
       continue;
     }
 
-    seenEmails.add(rawEmail);
+    seenEmails.add(recipientKey);
 
     try {
       // 1. Register certificate record in verification store
@@ -77,6 +78,7 @@ async function processJobRows(rows, options = {}) {
         issueDate: certificateOptions.issueDate || new Date().toISOString().split('T')[0],
         issuerName: certificateOptions.issuerName || '',
         extraData: {
+          phone: row.phone || null,
           customBgDataUrl: certificateOptions.customBgDataUrl || null,
           templatePreset: certificateOptions.templatePreset || 'modern',
           themeColor: certificateOptions.themeColor || '#e05638',
