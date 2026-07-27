@@ -109,12 +109,7 @@
             <form id="cert-design-form">
               <!-- STEP 1: Upload PNG Artwork -->
               <div class="form-group">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <label style="margin:0;">🖼️ 1. Certificate Artwork Template</label>
-                  <button type="button" id="btn-load-work2hire-preset" class="btn btn-secondary btn-sm">
-                    ✨ Load Work2Hire Template
-                  </button>
-                </div>
+                <label>🖼️ 1. Certificate Artwork Template</label>
                 <div class="drop-zone" id="pngDropZone">
                   <div class="drop-title">Drop your Canva / Photoshop PNG certificate or <span>browse file</span></div>
                   <div class="drop-subtitle">High resolution A4 Landscape (PNG / JPG)</div>
@@ -274,7 +269,12 @@
 
             <div class="divider"></div>
 
-            <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; margin-bottom:16px; color:#1a1d20;">📧 SMTP Delivery Configuration</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; margin:0; color:#1a1d20;">📧 SMTP Delivery Configuration</h3>
+              <button type="button" id="btn-open-smtp-guide" class="btn btn-secondary btn-sm">
+                ❓ Security & SMTP Setup Guide
+              </button>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="smtpHost">SMTP Host</label>
@@ -369,6 +369,75 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Security & SMTP Setup Guide Modal -->
+  <div id="smtp-guide-modal" class="modal-overlay hidden" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(26,29,32,0.6); backdrop-filter:blur(4px); display:flex; justify-content:center; align-items:center; z-index:9999;">
+    <div style="background:#faf8f5; border:3px solid #1a1d20; border-radius:16px; width:90%; max-width:680px; max-height:85vh; overflow-y:auto; padding:28px; box-shadow:0 20px 40px rgba(0,0,0,0.25); position:relative;">
+      <button id="btn-close-smtp-guide" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:1.5rem; font-weight:700; cursor:pointer; color:#1a1d20;">✕</button>
+
+      <h2 style="font-family:'Space Grotesk',sans-serif; font-size:1.4rem; color:#1a1d20; margin-top:0; margin-bottom:12px;">
+        🔒 Security, Privacy & Email Password Setup Guide
+      </h2>
+
+      <div style="background:#e8f5e9; border:2px solid #2d6a4f; border-radius:10px; padding:16px; margin-bottom:20px;">
+        <h4 style="margin:0 0 6px 0; color:#2d6a4f; font-family:'Space Grotesk',sans-serif;">🛡️ Why CertiPulse Is 100% Secure & Trustworthy</h4>
+        <ul style="margin:0; padding-left:20px; font-size:0.85rem; color:#1a1d20; line-height:1.5;">
+          <li><strong>Zero Password Storage:</strong> Your SMTP Password / App Key is <em>never stored on disk or in database</em>. It exists only in RAM during active sending and is immediately wiped.</li>
+          <li><strong>SHA-256 Tamper-Proof Cryptography:</strong> Every certificate gets an immutable 64-character hash that guarantees validity.</li>
+          <li><strong>No Data Sharing:</strong> Candidate names and emails are used solely for certificate delivery.</li>
+        </ul>
+      </div>
+
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; color:#1a1d20; margin-bottom:10px;">🔑 How to Get Email Password (SMTP Credentials)</h3>
+
+      <details open style="background:#ffffff; border:2px solid #1a1d20; border-radius:10px; padding:12px; margin-bottom:12px;">
+        <summary style="font-weight:700; font-family:'Space Grotesk',sans-serif; cursor:pointer; color:#1a1d20;">
+          Option 1: Gmail (100% Free — Up to 500 Emails/Day)
+        </summary>
+        <ol style="font-size:0.85rem; line-height:1.6; margin-top:10px; margin-bottom:0; padding-left:20px;">
+          <li>Go to your <strong>Google Account Security</strong> (myaccount.google.com/security).</li>
+          <li>Ensure <strong>2-Step Verification</strong> is enabled.</li>
+          <li>Search for <strong>"App Passwords"</strong> (or visit <code>myaccount.google.com/apppasswords</code>).</li>
+          <li>Create a new App Password named <code>CertiPulse</code> and copy the 16-character code.</li>
+          <li>In CertiPulse, enter:
+            <br>• <strong>Host:</strong> <code>smtp.gmail.com</code>
+            <br>• <strong>Port:</strong> <code>587</code>
+            <br>• <strong>Username:</strong> Your full Gmail address
+            <br>• <strong>Password:</strong> Your 16-character App Code
+          </li>
+        </ol>
+      </details>
+
+      <details style="background:#ffffff; border:2px solid #1a1d20; border-radius:10px; padding:12px; margin-bottom:12px;">
+        <summary style="font-weight:700; font-family:'Space Grotesk',sans-serif; cursor:pointer; color:#1a1d20;">
+          Option 2: Brevo / Sendinblue (100% Free — 300 Emails/Day)
+        </summary>
+        <ol style="font-size:0.85rem; line-height:1.6; margin-top:10px; margin-bottom:0; padding-left:20px;">
+          <li>Create a free account at <strong>Brevo.com</strong>.</li>
+          <li>Go to <strong>Transactional</strong> → <strong>SMTP & API Keys</strong>.</li>
+          <li>Copy your SMTP Key and enter:
+            <br>• <strong>Host:</strong> <code>smtp-relay.brevo.com</code>
+            <br>• <strong>Port:</strong> <code>587</code>
+            <br>• <strong>Username:</strong> Your Brevo account email
+            <br>• <strong>Password:</strong> Generated SMTP Key
+          </li>
+        </ol>
+      </details>
+
+      <details style="background:#ffffff; border:2px solid #1a1d20; border-radius:10px; padding:12px; margin-bottom:20px;">
+        <summary style="font-weight:700; font-family:'Space Grotesk',sans-serif; cursor:pointer; color:#e05638;">
+          Option 3: No Email Password? Use ZIP Download (100% Optional!)
+        </summary>
+        <p style="font-size:0.85rem; line-height:1.5; margin-top:10px; margin-bottom:0;">
+          You don't need to configure email sending right now! Simply leave all SMTP fields <strong>completely blank</strong>, upload your spreadsheet, and click <strong>Queue Dispatch</strong>. CertiPulse will generate all certificates into a single downloadable <code>Certificates.zip</code> archive ready for WhatsApp or Google Drive sharing!
+        </p>
+      </details>
+
+      <div style="text-align:right;">
+        <button id="btn-modal-got-it" class="btn btn-primary">Got it, close guide</button>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Popup Container -->

@@ -236,39 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Load Sample Work2Hire Template Action
-  document.getElementById('btn-load-work2hire-preset')?.addEventListener('click', () => {
-    const img = new Image();
-    img.onload = () => {
-      loadedCustomBgImage = img;
-      customBgDataUrl = '/work2hire_template.jpg';
-      if (pngFileStatus) {
-        pngFileStatus.textContent = '✓ Loaded Work2Hire Official Certificate Artwork';
-        pngFileStatus.classList.remove('hidden');
-      }
-      if (nameYInput) nameYInput.value = '270';
-      if (nameSizeInput) nameSizeInput.value = '30';
-      if (qrXInput) qrXInput.value = '742';
-      if (qrYInput) qrYInput.value = '494';
-
-      if (showBadgeCheck) showBadgeCheck.checked = false;
-      if (showSubtitleCheck) showSubtitleCheck.checked = false;
-      if (showEventCheck) showEventCheck.checked = false;
-      if (showFooterCheck) showFooterCheck.checked = false;
-
-      // Pre-configure custom text layers for bottom left Work2Hire labels
-      customLayers = [
-        { id: 101, text: '{{cert_id}}', y: 537, x: 110, align: 'left', size: 9, color: '#ffffff' },
-        { id: 102, text: '{{date}}', y: 567, x: 110, align: 'left', size: 9, color: '#ffffff' },
-      ];
-      renderCustomLayerControls();
-
-      showToast('Loaded Work2Hire Official Certificate Template & Calibrated Metadata!', 'success');
-      renderCanvasPreview();
-    };
-    img.src = '/work2hire_template.jpg';
-  });
-
   // Variable Replacer Engine
   function replaceVariables(str, data = {}) {
     let result = String(str || '');
@@ -588,6 +555,26 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.error(err);
       }
+    }
+  });
+
+  // SMTP Setup & Security Modal Handlers
+  const smtpGuideModal = document.getElementById('smtp-guide-modal');
+  document.getElementById('btn-open-smtp-guide')?.addEventListener('click', () => {
+    smtpGuideModal?.classList.remove('hidden');
+  });
+
+  document.getElementById('btn-close-smtp-guide')?.addEventListener('click', () => {
+    smtpGuideModal?.classList.add('hidden');
+  });
+
+  document.getElementById('btn-modal-got-it')?.addEventListener('click', () => {
+    smtpGuideModal?.classList.add('hidden');
+  });
+
+  smtpGuideModal?.addEventListener('click', (e) => {
+    if (e.target === smtpGuideModal) {
+      smtpGuideModal.classList.add('hidden');
     }
   });
 

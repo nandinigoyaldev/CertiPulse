@@ -1,90 +1,65 @@
-# CertiPulse ⚡
+# CertiPulse ⚡ Enterprise Credential & Automation Platform
 
-> **The Open-Source Credential Platform for Dynamic Certificate Generation, QR Verification & Automated Delivery**
-
-CertiPulse is an enterprise-grade, web-based certificate generation and automation platform for event organizers, workshop hosts, bootcamps, and hackathons. It replaces legacy manual certificate workflows and ban-prone messaging bots with a secure, 1-click web platform.
+> Next-generation Architectural Certificate Engine for Instant Studio Layouts, Batch Spreadsheet Automation, Cryptographic Verification, and Open Badges 3.0 Standard.
 
 ---
 
-## 🌟 Feature Overview & Partner Comparison
+## 🔒 Security, Trust & Data Privacy Standards
 
-| Feature | Legacy Bot | Certifier / Sertifier | **CertiPulse ⚡** |
-| :--- | :---: | :---: | :---: |
-| **Custom PNG Artwork Upload** | ❌ | ✅ | **✅ (Canva / Photoshop templates)** |
-| **Live Canvas Preview & Slider Controls** | ❌ | ✅ | **✅ (Real-time HTML5 Canvas)** |
-| **Scannable Verification QR Code** | ❌ | ✅ | **✅ (Burned in PDF & Scannable)** |
-| **Public Verification Portal (`/verify/:id`)** | ❌ | ✅ | **✅ (Tamper-proof registry)** |
-| **1-Click LinkedIn Add to Profile** | ❌ | ✅ | **✅ (Pre-populated certification link)** |
-| **1-Click X / Twitter Sharing** | ❌ | ❌ | **✅ Built-in** |
-| **Bulk Certificate ZIP Archive Export** | ❌ | ✅ | **✅ 1-Click ZIP Download** |
-| **Certificate Lifecycle (Revocation / Expiry)** | ❌ | ✅ | **✅ Complete audit trail & revocation** |
-| **Safe Automated Email Engine** | ❌ (Banned) | ✅ | **✅ Rate-limited SMTP / Nodemailer** |
-| **100% Data Privacy & Self-Hosted** | ❌ | ❌ | **✅ Open Source / Zero Vendor Lock-in** |
+CertiPulse is engineered from the ground up for high-trust enterprise and educational organizations:
+
+1. **Zero-Password Storage Architecture**:
+   - SMTP Passwords and App Passwords are **never written to disk or stored in any database**.
+   - Credentials exist strictly in ephemeral RAM during the active batch dispatch process and are immediately discarded.
+
+2. **SHA-256 Cryptographic Audit Trail**:
+   - Every issued credential generates an immutable 64-character SHA-256 fingerprint stored in `data/certificates.json`.
+   - Any modification or tampering with recipient data or issue dates invalidates the verification portal status automatically.
+
+3. **W3C Open Badges 3.0 Compliance**:
+   - Implements standard W3C Verifiable Credentials metadata JSON at `/api/certificates/:certId/badge.json`.
+
+4. **GDPR & Data Protection**:
+   - Recipient names, emails, and phone numbers are utilized strictly for certificate rendering and direct delivery.
 
 ---
 
-## 🚀 Quick Start
+## 🛠️ Features & Key Capabilities
 
-### 1) Prerequisites
-- Node.js 18 or newer.
+- **Interactive 3D Sticky Canvas**: Real-time canvas preview locked alongside cursor controls.
+- **AI Smart Roster Proofing**: Auto-capitalizes candidate names, fixes email typos (`gmai.com` $\rightarrow$ `gmail.com`), and formats phone numbers.
+- **Multi-Format Upload**: Drag-and-drop support for Canva/Photoshop custom PNG artwork and CSV/Excel candidate spreadsheets.
+- **Multi-Channel Dispatch**: Automated SMTP email attachments, zip archive bundle downloads, and WhatsApp integration.
+- **Mobile Wallet Integration**: Apple Wallet and Google Pay W3C pass metadata support.
 
-### 2) Installation
+---
+
+## 🚀 Quick Start Guide
+
+### 1. Install & Boot Platform
 ```bash
-git clone https://github.com/nandinigoyaldev/Workshop-WhatsApp-Assistant.git certipulse
-cd certipulse
 npm install
+npm run dev
 ```
+Open **`http://localhost:3000`** in your web browser.
 
-### 3) Configuration (Optional `.env`)
-```env
-PORT=3000
-APP_BASE_URL=http://localhost:3000
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-FROM_EMAIL=certificates@yourdomain.com
-FROM_NAME=CertiPulse Credentials
-MIN_DELAY_MS=1000
-MAX_DELAY_MS=3000
-```
-
-> *Note: If SMTP credentials are not configured, CertiPulse runs in safe dry-run mode for local testing and batch ZIP generation.*
-
-### 4) Run Platform
+### 2. Run Free Automated Test Suite
 ```bash
-npm start
+npm test
 ```
-Open **`http://localhost:3000`** in your browser.
 
 ---
 
-## 🛠️ REST API Reference
+## 📖 Email SMTP Setup Guide
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Server health check and status |
-| `POST` | `/api/preview-certificate` | Generate high-res PDF certificate preview |
-| `POST` | `/upload` | Upload spreadsheet roster (CSV/Excel) and trigger batch dispatch |
-| `GET` | `/jobs` | List active and historical upload dispatch jobs |
-| `GET` | `/api/jobs/:jobId/download-zip` | Download all generated certificates in a `.zip` archive |
-| `GET` | `/api/certificates` | Search & filter credential audit registry |
-| `POST` | `/api/certificates/:id/resend` | Resend certificate email to attendee |
-| `POST` | `/api/certificates/:id/revoke` | Revoke issued certificate with reason |
-| `GET` | `/verify/:certId` | Public tamper-proof verification page |
-| `GET` | `/api/verify/:certId` | Programmatic verification API (JSON) |
+| Service | SMTP Host | Port | Username | Password / Key |
+| :--- | :--- | :--- | :--- | :--- |
+| **Gmail** | `smtp.gmail.com` | `587` | Your Gmail Email | 16-Letter App Password |
+| **Brevo** | `smtp-relay.brevo.com` | `587` | Brevo Email | SMTP API Key |
+| **Resend** | `smtp.resend.com` | `465` | `resend` | API Key (`re_...`) |
+| **ZIP Download (No SMTP)** | *Leave Blank* | *Leave Blank* | *Leave Blank* | *Leave Blank* |
 
 ---
 
-## 🛡️ Security & Privacy Architecture
-
-* **Helmet HTTP Security**: Protection against XSS, clickjacking, and MIME-type sniffing.
-* **Rate Limiting**: API routes protected with `express-rate-limit` against brute-forcing.
-* **Input Sanitization**: All attendee details sanitized before PDF rendering and HTML email formatting.
-* **Local Storage & Zero Lock-in**: Full control over attendee rosters and data.
-
----
-
-## 📄 License
-
-MIT License. Built with ❤️ for event hosts and hackathon organizers.
+## 🧪 License
+Licensed under the MIT License.
