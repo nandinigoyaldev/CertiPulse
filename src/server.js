@@ -285,6 +285,10 @@ app.get('/api/certificates/:certId/pdf', async (req, res) => {
       issuerName: cert.issuerName,
       certId: cert.certId,
       verificationUrl,
+      themeColor: cert.extraData?.themeColor || '#e05638',
+      customBackground: cert.extraData?.customBgDataUrl || null,
+      templatePreset: cert.extraData?.templatePreset || 'modern',
+      layoutSettings: cert.extraData?.layoutSettings || {},
     });
 
     const fileName = `${sanitizeFilename(cert.recipientName)}_${cert.certId}.pdf`;
@@ -669,14 +673,20 @@ app.post('/upload', upload.single('workbook'), async (req, res) => {
     customBgDataUrl: String(req.body.customBgDataUrl || '').trim() || null,
     templatePreset: String(req.body.templatePreset || 'modern').trim(),
     layoutSettings: {
-      nameY: Number.parseInt(req.body.nameY || '200', 10),
-      nameSize: Number.parseInt(req.body.nameSize || '34', 10),
-      eventY: Number.parseInt(req.body.eventY || '280', 10),
-      eventSize: Number.parseInt(req.body.eventSize || '22', 10),
+      showName: String(req.body.showName) !== 'false',
       showQr: String(req.body.showQr) !== 'false',
-      qrX: Number.parseInt(req.body.qrX || '660', 10),
-      qrY: Number.parseInt(req.body.qrY || '400', 10),
+      showEvent: String(req.body.showEvent) === 'true',
+      showSubtitle: String(req.body.showSubtitle) === 'true',
+      showBadge: String(req.body.showBadge) === 'true',
+      showFooter: String(req.body.showFooter) === 'true',
+      nameY: Number.parseInt(req.body.nameY || '230', 10),
+      nameSize: Number.parseInt(req.body.nameSize || '34', 10),
+      eventY: Number.parseInt(req.body.eventY || '310', 10),
+      eventSize: Number.parseInt(req.body.eventSize || '20', 10),
+      qrX: Number.parseInt(req.body.qrX || '680', 10),
+      qrY: Number.parseInt(req.body.qrY || '430', 10),
       qrSize: Number.parseInt(req.body.qrSize || '80', 10),
+      customLayers: req.body.customLayers ? (typeof req.body.customLayers === 'string' ? JSON.parse(req.body.customLayers) : req.body.customLayers) : [],
     },
   };
 

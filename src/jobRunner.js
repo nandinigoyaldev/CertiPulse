@@ -73,9 +73,15 @@ async function processJobRows(rows, options = {}) {
       const certRecord = registerCertificate({
         recipientName,
         recipientEmail: rawEmail,
-        eventTitle: certificateOptions.eventTitle || 'Workshop & Event Automation',
+        eventTitle: certificateOptions.eventTitle || '',
         issueDate: certificateOptions.issueDate || new Date().toISOString().split('T')[0],
-        issuerName: certificateOptions.issuerName || 'CertiPulse Organizer',
+        issuerName: certificateOptions.issuerName || '',
+        extraData: {
+          customBgDataUrl: certificateOptions.customBgDataUrl || null,
+          templatePreset: certificateOptions.templatePreset || 'modern',
+          themeColor: certificateOptions.themeColor || '#e05638',
+          layoutSettings: certificateOptions.layoutSettings || {},
+        },
       });
 
       const verificationUrl = `${appBaseUrl.replace(/\/$/, '')}/verify/${certRecord.certId}`;
@@ -83,13 +89,16 @@ async function processJobRows(rows, options = {}) {
       // 2. Generate PDF Certificate
       const pdfBuffer = await generateCertificateBuffer({
         recipientName,
-        eventTitle: certificateOptions.eventTitle || 'Workshop & Event Automation',
-        certificateSubtitle: certificateOptions.certificateSubtitle || 'Certificate of Completion',
+        eventTitle: certificateOptions.eventTitle || '',
+        certificateSubtitle: certificateOptions.certificateSubtitle || '',
         issueDate: certRecord.issueDate,
         issuerName: certRecord.issuerName,
         certId: certRecord.certId,
         verificationUrl,
-        themeColor: certificateOptions.themeColor || '#0f766e',
+        themeColor: certificateOptions.themeColor || '#e05638',
+        customBackground: certificateOptions.customBgDataUrl || null,
+        templatePreset: certificateOptions.templatePreset || 'modern',
+        layoutSettings: certificateOptions.layoutSettings || {},
       });
 
       // 3. Send Email with PDF Attachment
