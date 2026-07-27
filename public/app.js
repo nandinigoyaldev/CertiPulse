@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
-    let icon = 'ℹ️';
+    let icon = '⚡';
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '❌';
 
@@ -53,13 +53,34 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateX(100%)';
-      setTimeout(() => toast.remove(), 300);
+      setTimeout(() => toast.remove(), 250);
     }, 4000);
   }
 
-  // Canvas Studio Elements
+  // 3D Canvas Tilt Interactivity
+  const canvasContainer = document.getElementById('3d-canvas-container');
   const canvas = document.getElementById('certCanvas');
   const ctx = canvas ? canvas.getContext('2d') : null;
+
+  if (canvasContainer && canvas) {
+    canvasContainer.addEventListener('mousemove', (e) => {
+      const rect = canvasContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      const rotateX = ((y - centerY) / centerY) * -8;
+      const rotateY = ((x - centerX) / centerX) * 8;
+
+      canvas.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+    });
+
+    canvasContainer.addEventListener('mouseleave', () => {
+      canvas.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
+    });
+  }
 
   const templatePresetSelect = document.getElementById('templatePreset');
   const customBgFileInput = document.getElementById('customBgFile');
@@ -141,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const height = canvas.height;
 
     const preset = templatePresetSelect ? templatePresetSelect.value : 'modern';
-    const themeColor = themeColorInput ? themeColorInput.value : '#10b981';
+    const themeColor = themeColorInput ? themeColorInput.value : '#e05638';
 
     const eventTitle = eventTitleInput ? eventTitleInput.value : 'Full-Stack Web Development Workshop';
     const subtitle = subtitleInput ? subtitleInput.value : 'Certificate of Completion';
@@ -183,21 +204,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, height);
 
-        ctx.strokeStyle = '#1e293b';
+        ctx.strokeStyle = '#1a1d20';
         ctx.lineWidth = 6;
         ctx.strokeRect(24, 24, width - 48, height - 48);
       } else {
-        // Modern Teal / Custom Accent (default)
+        // Modern Nordic Terracotta / Custom Accent (default)
         ctx.fillStyle = '#faf8f5';
         ctx.fillRect(0, 0, width, height);
 
         ctx.strokeStyle = themeColor;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.strokeRect(20, 20, width - 40, height - 40);
 
-        ctx.strokeStyle = '#cbd5e1';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(26, 26, width - 52, height - 52);
+        ctx.strokeStyle = '#1a1d20';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(28, 28, width - 56, height - 56);
 
         // Accent Corners
         ctx.fillStyle = themeColor;
@@ -210,11 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Header Badge & Subtitle Text
       ctx.textAlign = 'center';
       ctx.fillStyle = themeColor;
-      ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+      ctx.font = 'bold 14px "Space Grotesk", sans-serif';
       ctx.fillText('OFFICIAL CREDENTIAL', width / 2, 70);
 
-      ctx.fillStyle = preset === 'tech' ? '#f8fafc' : '#1e293b';
-      ctx.font = '26px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = preset === 'tech' ? '#f8fafc' : '#1a1d20';
+      ctx.font = '700 26px "Space Grotesk", sans-serif';
       ctx.fillText(subtitle, width / 2, 105);
 
       // Line
@@ -222,43 +243,43 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.moveTo(width / 2 - 100, 130);
       ctx.lineTo(width / 2 + 100, 130);
       ctx.strokeStyle = themeColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.stroke();
 
-      ctx.fillStyle = preset === 'tech' ? '#94a3b8' : '#64748b';
+      ctx.fillStyle = preset === 'tech' ? '#94a3b8' : '#5a6065';
       ctx.font = 'bold 11px Inter, sans-serif';
       ctx.fillText('THIS IS PROUDLY PRESENTED TO', width / 2, 160);
     }
 
     // Recipient Name
-    const fontColor = preset === 'tech' && !loadedCustomBgImage ? '#ffffff' : '#0f172a';
+    const fontColor = preset === 'tech' && !loadedCustomBgImage ? '#ffffff' : '#1a1d20';
     ctx.textAlign = 'center';
     ctx.fillStyle = fontColor;
-    ctx.font = `bold ${nameSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.font = `700 ${nameSize}px "Space Grotesk", sans-serif`;
     ctx.fillText('Jane Doe (Sample)', width / 2, nameY);
 
     if (!loadedCustomBgImage) {
-      ctx.fillStyle = preset === 'tech' ? '#cbd5e1' : '#475569';
+      ctx.fillStyle = preset === 'tech' ? '#cbd5e1' : '#5a6065';
       ctx.font = '13px Inter, sans-serif';
       ctx.fillText('for successfully participating in and completing', width / 2, eventY - 26);
     }
 
     // Event Title
     ctx.fillStyle = themeColor;
-    ctx.font = `bold ${eventSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.font = `700 ${eventSize}px "Space Grotesk", sans-serif`;
     ctx.fillText(eventTitle, width / 2, eventY);
 
     // Footer Info
     if (!loadedCustomBgImage) {
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#5a6065';
       ctx.font = 'bold 10px Inter, sans-serif';
       ctx.fillText('ISSUE DATE', 90, 420);
       ctx.fillStyle = fontColor;
       ctx.font = '11px Inter, sans-serif';
       ctx.fillText(new Date().toISOString().split('T')[0], 90, 436);
 
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#5a6065';
       ctx.font = 'bold 10px Inter, sans-serif';
       ctx.fillText('CERTIFICATE ID', 90, 458);
       ctx.fillStyle = themeColor;
@@ -267,9 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ctx.textAlign = 'center';
       ctx.fillStyle = fontColor;
-      ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+      ctx.font = '700 14px "Space Grotesk", sans-serif';
       ctx.fillText(issuerName, width / 2, 460);
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#5a6065';
       ctx.font = '10px Inter, sans-serif';
       ctx.fillText('Authorized Issuer', width / 2, 476);
     }
@@ -277,16 +298,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // QR Code Placeholder
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(qrX, qrY, 80, 80);
-    ctx.strokeStyle = '#0f172a';
+    ctx.strokeStyle = '#1a1d20';
     ctx.lineWidth = 2;
     ctx.strokeRect(qrX, qrY, 80, 80);
 
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = '#1a1d20';
     ctx.fillRect(qrX + 10, qrY + 10, 20, 20);
     ctx.fillRect(qrX + 50, qrY + 10, 20, 20);
     ctx.fillRect(qrX + 10, qrY + 50, 20, 20);
 
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = '#5a6065';
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Scan to Verify', qrX + 40, qrY + 94);
@@ -319,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         eventTitle: eventTitleInput ? eventTitleInput.value : 'Workshop',
         certificateSubtitle: subtitleInput ? subtitleInput.value : 'Certificate of Completion',
         issuerName: issuerNameInput ? issuerNameInput.value : 'Nandini Goyal',
-        themeColor: themeColorInput ? themeColorInput.value : '#10b981',
+        themeColor: themeColorInput ? themeColorInput.value : '#e05638',
         customBgDataUrl,
         templatePreset: templatePresetSelect ? templatePresetSelect.value : 'modern',
         nameY: nameYInput ? nameYInput.value : '200',
@@ -432,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           return `
             <tr>
-              <td><strong style="color:var(--accent-teal); font-family:monospace;">${cert.certId}</strong></td>
+              <td><strong style="color:var(--accent-terracotta); font-family:'JetBrains Mono',monospace;">${cert.certId}</strong></td>
               <td><strong>${cert.recipientName}</strong></td>
               <td style="color:var(--text-secondary);">${cert.recipientEmail}</td>
               <td>${cert.eventTitle}</td>

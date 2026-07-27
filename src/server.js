@@ -398,26 +398,24 @@ app.get('/verify/:certId', (req, res) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verified Credential — ${recipientName} | CertiPulse</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
       :root {
-        --bg-dark: #0b0f17;
-        --card-bg: rgba(17, 24, 39, 0.75);
-        --card-border: rgba(255, 255, 255, 0.1);
-        --text-primary: #f8fafc;
-        --text-secondary: #94a3b8;
-        --accent-teal: #10b981;
-        --accent-blue: #38bdf8;
+        --bg-app: #f4f0ea;
+        --card-bg: #faf8f5;
+        --border-dark: #1a1d20;
+        --text-primary: #1a1d20;
+        --text-secondary: #5a6065;
+        --accent-terracotta: #e05638;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         padding: 40px 16px;
         font-family: 'Inter', sans-serif;
-        background: var(--bg-dark);
-        background-image: 
-          radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
-          radial-gradient(at 85% 85%, rgba(56, 189, 248, 0.12) 0px, transparent 50%);
+        background: var(--bg-app);
+        background-image: radial-gradient(rgba(26, 29, 32, 0.05) 1px, transparent 1px);
+        background-size: 24px 24px;
         color: var(--text-primary);
         min-height: 100vh;
         display: flex;
@@ -428,82 +426,88 @@ app.get('/verify/:certId', (req, res) => {
         width: 100%;
         max-width: 640px;
         background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 20px;
-        padding: 36px;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border: 2px solid var(--border-dark);
+        border-radius: 18px;
+        padding: 40px;
+        box-shadow: 6px 6px 0px #1a1d20;
       }
       .badge-header {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 14px;
+        padding: 6px 16px;
         border-radius: 9999px;
-        font-size: 0.82rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
         font-weight: 700;
         letter-spacing: 0.5px;
         color: #ffffff;
         background: ${statusBadgeColor};
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        border: 1.5px solid var(--border-dark);
+        box-shadow: 2px 2px 0px var(--border-dark);
         margin-bottom: 24px;
       }
       h1 {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.9rem;
+        font-weight: 700;
         margin: 0 0 6px 0;
-        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #1a1d20;
+        letter-spacing: -0.02em;
       }
       .subtitle {
         color: var(--text-secondary);
-        font-size: 0.92rem;
+        font-size: 0.94rem;
         margin: 0 0 28px 0;
       }
       .data-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 20px;
+        gap: 18px;
+        background: #ffffff;
+        border: 2px solid var(--border-dark);
+        border-radius: 12px;
+        padding: 24px;
         margin-bottom: 28px;
+        box-shadow: 2px 2px 0px rgba(26, 29, 32, 0.08);
       }
       .grid-item label {
         display: block;
-        font-size: 0.75rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.74rem;
         text-transform: uppercase;
         letter-spacing: 0.8px;
         color: var(--text-secondary);
         margin-bottom: 4px;
+        font-weight: 700;
       }
       .grid-item span {
-        font-size: 0.98rem;
-        font-weight: 600;
-        color: #ffffff;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a1d20;
       }
       .hash-box {
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #e9e3d8;
+        border: 2px solid var(--border-dark);
         border-radius: 10px;
-        padding: 12px;
+        padding: 14px;
         margin-bottom: 28px;
-        font-family: monospace;
+        font-family: 'JetBrains Mono', monospace;
         font-size: 0.78rem;
-        color: #a7f3d0;
+        color: #e05638;
         word-break: break-all;
         display: flex;
         flex-direction: column;
         gap: 4px;
+        font-weight: 700;
       }
       .hash-box label {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.7rem;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 0.72rem;
         color: var(--text-secondary);
         text-transform: uppercase;
+        font-weight: 700;
       }
       .actions-flex {
         display: flex;
@@ -515,45 +519,48 @@ app.get('/verify/:certId', (req, res) => {
         align-items: center;
         justify-content: center;
         gap: 10px;
-        padding: 12px 20px;
+        padding: 13px 22px;
         border-radius: 10px;
-        font-weight: 600;
-        font-size: 0.92rem;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 0.94rem;
         text-decoration: none;
-        transition: all 0.2s ease;
-        border: none;
+        transition: all 0.15s ease;
+        border: 2px solid var(--border-dark);
         cursor: pointer;
       }
       .btn-download {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: var(--accent-terracotta);
         color: #ffffff;
-        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        box-shadow: 4px 4px 0px #1a1d20;
       }
-      .btn-download:hover { transform: translateY(-1px); opacity: 0.95; }
-      .btn-linkedin { background: #0a66c2; color: #ffffff; }
-      .btn-twitter { background: #000000; color: #ffffff; border: 1px solid #334155; }
-      .btn-whatsapp { background: #25d366; color: #ffffff; }
-      .btn-secondary { background: rgba(255, 255, 255, 0.06); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.1); }
-      .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+      .btn-download:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0px #1a1d20; }
+      .btn-linkedin { background: #0a66c2; color: #ffffff; box-shadow: 2px 2px 0px #1a1d20; }
+      .btn-twitter { background: #1a1d20; color: #ffffff; box-shadow: 2px 2px 0px #1a1d20; }
+      .btn-whatsapp { background: #25d366; color: #ffffff; box-shadow: 2px 2px 0px #1a1d20; }
+      .btn-secondary { background: #ffffff; color: #1a1d20; box-shadow: 2px 2px 0px #1a1d20; }
+      .btn-secondary:hover { background: #e9e3d8; }
       .share-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
       .embed-box {
         margin-top: 24px;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #ffffff;
+        border: 2px solid var(--border-dark);
         border-radius: 10px;
         padding: 14px;
       }
-      .embed-box summary { font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; font-weight: 600; }
-      .embed-box input { width: 100%; margin-top: 10px; background: #000000; border: 1px solid #334155; color: #38bdf8; font-family: monospace; font-size: 0.78rem; padding: 8px; border-radius: 6px; }
+      .embed-box summary { font-family: 'Space Grotesk', sans-serif; font-size: 0.84rem; color: var(--text-secondary); cursor: pointer; font-weight: 700; }
+      .embed-box input { width: 100%; margin-top: 10px; background: #faf8f5; border: 1.5px solid var(--border-dark); color: var(--accent-terracotta); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; padding: 10px; border-radius: 6px; }
       .meta-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-top: 28px;
         padding-top: 18px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 2px solid var(--border-dark);
+        font-family: 'JetBrains Mono', monospace;
         font-size: 0.8rem;
         color: var(--text-secondary);
+        font-weight: 700;
       }
     </style>
   </head>
@@ -581,7 +588,7 @@ app.get('/verify/:certId', (req, res) => {
         <span>${fingerprintHash}</span>
       </div>
 
-      ${isRevoked && cert.revocationReason ? `<div style="padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; font-size:0.85rem; border-radius:10px; margin-bottom:24px;"><strong>Revocation Reason:</strong> ${cert.revocationReason}</div>` : ''}
+      ${isRevoked && cert.revocationReason ? `<div style="padding:14px; background:#fff1f2; border:1px solid #fecdd3; color:#e11d48; font-size:0.88rem; border-radius:12px; margin-bottom:24px;"><strong>Revocation Reason:</strong> ${cert.revocationReason}</div>` : ''}
 
       <div class="actions-flex">
         ${isValid ? `
