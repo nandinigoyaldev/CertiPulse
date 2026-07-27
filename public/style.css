@@ -487,11 +487,14 @@ textarea:focus {
   font-size: 0.82rem;
 }
 
-/* Canvas & Preview Panel */
+/* Canvas & Preview Panel (Sticky on Scroll) */
 .preview-container {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: sticky;
+  top: 96px;
+  align-self: start;
 }
 
 .preview-toolbar {

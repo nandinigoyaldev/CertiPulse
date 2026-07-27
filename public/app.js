@@ -197,7 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
           pngFileStatus.textContent = `✓ Loaded Custom PNG Artwork: ${file.name} (${img.width}x${img.height}px)`;
           pngFileStatus.classList.remove('hidden');
         }
-        showToast('Custom PNG certificate template uploaded successfully!', 'success');
+        if (showBadgeCheck) showBadgeCheck.checked = false;
+        if (showSubtitleCheck) showSubtitleCheck.checked = false;
+        if (showEventCheck) showEventCheck.checked = false;
+        showToast('Custom PNG certificate artwork uploaded! Boilerplate titles hidden automatically.', 'success');
         renderCanvasPreview();
       };
       img.src = customBgDataUrl;

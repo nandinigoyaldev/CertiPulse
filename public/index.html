@@ -12,7 +12,7 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- De-congested Header Navbar -->
+    <!-- Header Navbar -->
     <header class="navbar">
       <div class="brand">
         <div class="brand-icon">
@@ -102,23 +102,24 @@
           <!-- Design Controls Form -->
           <div class="card">
             <div class="card-header">
-              <h2>Certificate Designer & Layer Engine</h2>
-              <p>Supports dynamic placeholders: <code>{{name}}</code>, <code>{{event}}</code>, <code>{{grade}}</code>, <code>{{score}}</code>, <code>{{track}}</code>.</p>
+              <h2>Organizer Certificate Studio</h2>
+              <p>Upload your Canva/Photoshop PNG artwork. CertiPulse automatically overlays the Recipient Name, Date, Organizer & QR verification code.</p>
             </div>
 
             <form id="cert-design-form">
+              <!-- STEP 1: Upload PNG Artwork -->
               <div class="form-group">
-                <label>🖼️ Custom Certificate PNG Template Artwork</label>
+                <label>🖼️ 1. Certificate PNG Artwork Template</label>
                 <div class="drop-zone" id="pngDropZone">
-                  <div class="drop-title">Drop custom PNG artwork image or <span>browse file</span></div>
-                  <div class="drop-subtitle">High resolution A4 Landscape (PNG / JPG)</div>
+                  <div class="drop-title">Drop your Canva / Photoshop PNG certificate or <span>browse file</span></div>
+                  <div class="drop-subtitle">High resolution A4 Landscape PNG (842 x 595 px)</div>
                   <input type="file" id="customBgFile" accept="image/png, image/jpeg" class="file-input">
                 </div>
                 <div id="png-file-status" class="file-info-box hidden" style="margin-top:8px; padding:10px; background:#e8f5e9; border:1.5px solid #1a1d20; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#2d6a4f; font-weight:700;"></div>
               </div>
 
               <div class="form-group">
-                <label for="templatePreset">Preset Design Theme</label>
+                <label for="templatePreset">Or Choose Built-in Theme Preset</label>
                 <select id="templatePreset">
                   <option value="modern" selected>Modern Terracotta & Cream</option>
                   <option value="gold">Executive Gold Diploma</option>
@@ -128,96 +129,113 @@
               </div>
 
               <div class="divider"></div>
-              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; margin-bottom:12px; color:#1a1d20;">👁️ Designer Layer Toggles</h3>
-              
-              <div class="layer-toggles-grid">
-                <label class="checkbox-label"><input type="checkbox" id="showBadge" checked> Header Badge</label>
-                <label class="checkbox-label"><input type="checkbox" id="showSubtitle" checked> Subtitle Text</label>
-                <label class="checkbox-label"><input type="checkbox" id="showName" checked> Recipient Name</label>
-                <label class="checkbox-label"><input type="checkbox" id="showEvent" checked> Event Title</label>
-                <label class="checkbox-label"><input type="checkbox" id="showFooter" checked> Footer Signatures</label>
-                <label class="checkbox-label"><input type="checkbox" id="showQr" checked> Scannable QR Code</label>
-              </div>
 
-              <div class="divider"></div>
+              <!-- STEP 2: Essential Overlays (Just 4 core fields!) -->
+              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.05rem; font-weight:700; margin-bottom:14px; color:#1a1d20;">⚙️ 2. Essential Overlays Positioning</h3>
 
-              <div class="form-group">
-                <label for="eventTitle">Event / Workshop Title (supports {{variables}})</label>
-                <input type="text" id="eventTitle" value="Full-Stack Web Development Workshop">
-              </div>
-
-              <div class="form-group">
-                <label for="certificateSubtitle">Certificate Subtitle</label>
-                <input type="text" id="certificateSubtitle" value="Certificate of Completion">
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="issuerName">Host / Organizer / Partner</label>
-                  <input type="text" id="issuerName" value="Nandini Goyal & CertiPulse">
+              <!-- Recipient Name Overlay -->
+              <div class="custom-layer-card" style="background:#faf8f5;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label style="margin:0; font-size:0.9rem;">👤 Recipient Name Overlay</label>
+                  <label class="checkbox-label" style="margin:0;"><input type="checkbox" id="showName" checked> Enabled</label>
                 </div>
-                <div class="form-group">
-                  <label for="themeColor">Accent Color</label>
-                  <input type="text" id="themeColor" value="#e05638">
+                <div class="form-row">
+                  <div>
+                    <label style="font-size:0.75rem;">Vertical Position (Y)</label>
+                    <input type="number" id="nameY" value="230" step="5">
+                  </div>
+                  <div>
+                    <label style="font-size:0.75rem;">Font Size (px)</label>
+                    <input type="number" id="nameSize" value="34" step="1">
+                  </div>
                 </div>
               </div>
 
-              <div class="divider"></div>
-              <h3 style="font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; margin-bottom:12px; color:#1a1d20;">🎯 Text & Position Controls</h3>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="nameY">Name Y Position</label>
-                  <input type="number" id="nameY" value="200" step="5">
+              <!-- Organizer / Host Name Overlay -->
+              <div class="custom-layer-card" style="background:#faf8f5;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label style="margin:0; font-size:0.9rem;">✍️ Organizer / Host Name</label>
+                  <label class="checkbox-label" style="margin:0;"><input type="checkbox" id="showFooter" checked> Enabled</label>
                 </div>
-                <div class="form-group">
-                  <label for="nameSize">Name Size</label>
-                  <input type="number" id="nameSize" value="34" step="1">
+                <div class="form-group" style="margin-bottom:8px;">
+                  <input type="text" id="issuerName" value="Nandini Goyal & CertiPulse Team">
                 </div>
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="eventY">Event Y Position</label>
-                  <input type="number" id="eventY" value="280" step="5">
+              <!-- QR Code & Cert ID Overlay -->
+              <div class="custom-layer-card" style="background:#faf8f5;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label style="margin:0; font-size:0.9rem;">🔳 Scannable QR Code & Cert ID</label>
+                  <label class="checkbox-label" style="margin:0;"><input type="checkbox" id="showQr" checked> Enabled</label>
                 </div>
-                <div class="form-group">
-                  <label for="eventSize">Event Size</label>
-                  <input type="number" id="eventSize" value="22" step="1">
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="qrX">QR X Position</label>
-                  <input type="number" id="qrX" value="660" step="5">
-                </div>
-                <div class="form-group">
-                  <label for="qrY">QR Y Position</label>
-                  <input type="number" id="qrY" value="400" step="5">
+                <div class="form-row">
+                  <div>
+                    <label style="font-size:0.75rem;">QR Position X</label>
+                    <input type="number" id="qrX" value="680" step="5">
+                  </div>
+                  <div>
+                    <label style="font-size:0.75rem;">QR Position Y</label>
+                    <input type="number" id="qrY" value="430" step="5">
+                  </div>
                 </div>
               </div>
 
               <div class="divider"></div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; color:#1a1d20;">➕ Dynamic Custom Text Layers</h3>
-                <button type="button" id="btn-add-custom-layer" class="btn btn-secondary btn-sm">+ Add Layer</button>
-              </div>
 
-              <div id="custom-layers-container"></div>
+              <!-- Collapsible Advanced Formatting Accordion -->
+              <details style="background:#ffffff; border:2px solid #1a1d20; border-radius:10px; padding:14px; margin-bottom:20px;">
+                <summary style="font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; color:#1a1d20;">
+                  🛠️ Advanced Options & Additional Text Fields (Optional)
+                </summary>
+                
+                <div style="margin-top:16px;">
+                  <div class="layer-toggles-grid">
+                    <label class="checkbox-label"><input type="checkbox" id="showBadge"> Header Badge</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showSubtitle"> Subtitle Text</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showEvent" checked> Event Title</label>
+                  </div>
 
-              <div style="margin-top: 24px;">
+                  <div class="form-group">
+                    <label for="eventTitle">Event Title (supports {{event}} variable)</label>
+                    <input type="text" id="eventTitle" value="Full-Stack Web Development Workshop">
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="eventY">Event Y Position</label>
+                      <input type="number" id="eventY" value="310" step="5">
+                    </div>
+                    <div class="form-group">
+                      <label for="eventSize">Event Size</label>
+                      <input type="number" id="eventSize" value="20" step="1">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="themeColor">Accent Color</label>
+                    <input type="text" id="themeColor" value="#e05638">
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; margin-bottom:10px;">
+                    <strong style="font-family:'Space Grotesk',sans-serif; font-size:0.86rem; color:#1a1d20;">➕ Custom Dynamic Text Layer</strong>
+                    <button type="button" id="btn-add-custom-layer" class="btn btn-secondary btn-sm">+ Add Layer</button>
+                  </div>
+                  <div id="custom-layers-container"></div>
+                </div>
+              </details>
+
+              <div style="margin-top: 14px;">
                 <button type="button" id="btn-generate-preview" class="btn btn-primary" style="width: 100%;">
-                  ⚡ Refresh Live Canvas Preview
+                  ⚡ Refresh Certificate Preview
                 </button>
               </div>
             </form>
           </div>
 
-          <!-- Preview & Canvas Panel -->
+          <!-- Sticky Preview & Canvas Panel -->
           <div class="preview-container">
             <div class="preview-toolbar">
-              <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.95rem; color:#1a1d20;">🖥️ Studio Live 3D Interactive Canvas</span>
+              <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.95rem; color:#1a1d20;">🖥️ Live Sticky Certificate Canvas</span>
               <button id="btn-download-sample-pdf" class="btn btn-secondary btn-sm">
                 📥 Download Sample PDF
               </button>
